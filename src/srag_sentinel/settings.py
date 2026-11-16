@@ -43,6 +43,13 @@ class Settings(BaseSettings):
     surreal_api_rw_user: str = "api_rw"
     surreal_api_rw_password: SecretStr = SecretStr("")
 
+    # Audit trail (docs/specs/05): the app writes as a record-access user, never as a system user.
+    surreal_audit_database: str = "audit"
+    surreal_audit_writer_name: str = "app"
+    surreal_audit_writer_password: SecretStr = SecretStr("")
+    surreal_audit_reader_user: str = "audit_reader"
+    surreal_audit_reader_password: SecretStr = SecretStr("")
+
     # LLM tiers (docs/specs/03 §4 and 08 §2). `large` is the main model; `small` and `judge`
     # are optional and fall back to `large` when unset.
     llm_provider: Provider = "anthropic"
@@ -73,6 +80,8 @@ class Settings(BaseSettings):
         "surreal_ingest_user",
         "surreal_api_ro_user",
         "surreal_api_rw_user",
+        "surreal_audit_database",
+        "surreal_audit_reader_user",
     )
     @classmethod
     def _safe_identifier(cls, value: str) -> str:

@@ -23,6 +23,8 @@ def _require_passwords(settings: Settings) -> None:
         "SRAG_SURREAL_INGEST_PASSWORD": settings.surreal_ingest_password,
         "SRAG_SURREAL_API_RO_PASSWORD": settings.surreal_api_ro_password,
         "SRAG_SURREAL_API_RW_PASSWORD": settings.surreal_api_rw_password,
+        "SRAG_SURREAL_AUDIT_WRITER_PASSWORD": settings.surreal_audit_writer_password,
+        "SRAG_SURREAL_AUDIT_READER_PASSWORD": settings.surreal_audit_reader_password,
     }
     missing = [name for name, secret in required.items() if not secret.get_secret_value()]
     if missing:
@@ -48,6 +50,7 @@ async def init_database(settings: Settings) -> None:
         await connection.use(namespace, None)
         await run(connection, f"DEFINE DATABASE IF NOT EXISTS {data_db};")
         await run(connection, f"DEFINE DATABASE IF NOT EXISTS {app_db};")
+        await run(connection, f"DEFINE DATABASE IF NOT EXISTS {settings.surreal_audit_database};")
 
         await connection.use(namespace, data_db)
         await run(connection, _schema("data"))
@@ -62,6 +65,24 @@ async def init_database(settings: Settings) -> None:
         await run(connection, _schema("app"))
         await _define_user(
             connection, settings.surreal_api_rw_user, settings.surreal_api_rw_password, "EDITOR"
+        )
+
+        await connection.use(namespace, settings.surreal_audit_database)
+        await run(connection, _schema("audit"))
+        # The writer's credentials live in `svc` as an argon2 hash computed by the server.
+        await run(
+            connection,
+            "UPSERT svc:writer SET name = $name, pass = crypto::argon2::generate($pass);",
+            {
+                "name": settings.surreal_audit_writer_name,
+                "pass": settings.surreal_audit_writer_password.get_secret_value(),
+            },
+        )
+        await _define_user(
+            connection,
+            settings.surreal_audit_reader_user,
+            settings.surreal_audit_reader_password,
+            "VIEWER",
         )
 
 

@@ -85,7 +85,7 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
   - Aceite: `ReportRequest` estrito (`extra=forbid`, UF, `as_of`, janela 7–90); `Budget` (chamadas LLM, tokens, queries, artigos, timeout); veredito padronizado `GuardrailVerdict`.
   - Verifica: tabela de casos válidos/ inválidos (incl. payload tipo `BR'; REMOVE …`).
   - Arquivos: `guardrails/{verdict,input,budget}.py`, `tests/guardrails/test_input_budget.py`. Dep.: T1
-- [ ] **T9 — Trilha de auditoria (hash chain, SurrealDB `audit`)** (M) [05]
+- [x] **T9 — Trilha de auditoria (hash chain, SurrealDB `audit`)** (M) [05] — ✔ cadeia global com `UNIQUE(seq)`, escritor por record access, `READONLY` imposto até a root (UPDATE falha), concorrência sem fork (2 escritores), `audit verify/export` e âncora externa (`--expected-head`) para detectar truncamento do rabo; detalhes só escalares sem float
   - Aceite: `AuditLog` com eventos `audit.v1`, `seq` único, `prev_hash/hash`, escritor com credencial de mínimo privilégio, falha ⇒ aborta; `audit verify` e `audit export` (JSONL).
   - Verifica: integração — adulteração (editar/remover/reordenar) detectada; credencial da API não faz UPDATE/DELETE; nenhum evento com PII/conteúdo por padrão.
   - Arquivos: `governance/{audit,chain,verify}.py`, `db/schema/audit.surql`, `tests/integration/test_audit.py`. Dep.: T0c, T3

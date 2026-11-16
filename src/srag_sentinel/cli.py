@@ -4,6 +4,7 @@ import argparse
 import asyncio
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 from pydantic import ValidationError
 
@@ -15,6 +16,7 @@ from srag_sentinel.data.ingest.pipeline import IngestManifest
 from srag_sentinel.data.ingest.service import PartialIngestError, ingest, resolve_sources
 from srag_sentinel.data.ingest.transform import SchemaMismatchError
 from srag_sentinel.db.init import SchemaInitError, init_database
+from srag_sentinel.governance.service import export_jsonl, read_chain, verify
 from srag_sentinel.reporting.text import format_metrics, format_series
 from srag_sentinel.settings import get_settings
 
@@ -57,6 +59,13 @@ def build_parser() -> argparse.ArgumentParser:
         help="newest days to leave out when --as-of is not given (notification lag)",
     )
 
+    audit = commands.add_parser("audit", help="audit trail operations")
+    audit_commands = audit.add_subparsers(dest="audit_command", required=True)
+    verify_cmd = audit_commands.add_parser("verify", help="verify the audit hash chain")
+    verify_cmd.add_argument("--expected-head", help="head hash kept outside the database")
+    export_cmd = audit_commands.add_parser("export", help="export the audit chain as JSONL")
+    export_cmd.add_argument("--out", type=Path, required=True, help="target .jsonl file")
+
     db = commands.add_parser("db", help="database administration")
     db_commands = db.add_subparsers(dest="db_command", required=True)
     db_commands.add_parser("init", help="create namespace, databases, schema and role users")
@@ -70,6 +79,8 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     if args.command == "db" and args.db_command == "init":
         return _db_init()
+    if args.command == "audit":
+        return _audit(args)
     if args.command == "ingest":
         return _ingest(years=args.years, urls=args.url, allow_partial=args.allow_partial)
     if args.command == "metrics":
@@ -82,6 +93,21 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     parser.print_help()
     return 0
+
+
+def _audit(args: argparse.Namespace) -> int:
+    settings = get_settings()
+    if args.audit_command == "export":
+        events = asyncio.run(read_chain(settings))
+        head = export_jsonl(events, args.out)
+        print(f"exported {len(events)} events to {args.out}; head {head}")
+        return 0
+    result = asyncio.run(verify(settings, expected_head=args.expected_head))
+    if result.ok:
+        print(f"audit chain ok: {result.checked} events, head {result.head_hash}")
+        return 0
+    print(f"AUDIT CHAIN BROKEN at seq {result.failed_seq}: {result.reason}")
+    return 1
 
 
 def _metrics(*, uf: str, as_of: date | None, window_days: int, settle_days: int) -> int:
