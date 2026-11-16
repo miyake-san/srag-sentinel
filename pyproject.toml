@@ -1,0 +1,66 @@
+[project]
+name = "srag-sentinel"
+version = "0.1.0"
+description = "Agentic AI system that generates SRAG outbreak reports from OpenDATASUS metrics and real-time news."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "pydantic>=2.14",
+    "pydantic-settings>=2.16",
+]
+
+[project.scripts]
+srag-sentinel = "srag_sentinel.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13,<0.14"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.170",
+    "mypy>=2.4",
+    "pytest>=9.2",
+    "pytest-cov>=7.0",
+    "ruff>=0.17",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+src = ["src", "tests"]
+# Throwaway spike scripts and vendored third-party skills are not project code.
+extend-exclude = ["spikes", ".claude"]
+
+[tool.ruff.format]
+# Docs are authored by hand; only Python source is auto-formatted.
+exclude = ["*.md"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "C90", "S", "N", "PL", "RUF"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "PLR2004"]
+
+[tool.mypy]
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -m 'not live and not integration'"
+markers = [
+    "integration: needs the SurrealDB container (docker compose up -d surrealdb)",
+    "live: needs network access and/or provider API keys",
+]
+
+[tool.coverage.run]
+source = ["srag_sentinel"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
