@@ -93,7 +93,7 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
   - Aceite: allowlist/score de domínios, filtros de idioma/data/relevância, dedupe, sanitização (markup, Unicode oculto), detector de instruções, scrubber CPF/CNPJ/e-mail/telefone, empacotamento `<untrusted_news>`.
   - Verifica: corpus ≥ 15 injeções + ≥ 10 PII, todos neutralizados/ bloqueados.
   - Arquivos: `guardrails/{news,pii}.py`, `config/domains.yaml`, `tests/guardrails/test_news_pii.py`. Dep.: T7, T8
-- [ ] **T10b — Guardrail G3 (grounding da narrativa)** (M) [04]
+- [x] **T10b — Guardrail G3 (grounding da narrativa)** (M) [04] — ✔ números só das métricas citadas (ou do artigo citado, com "segundo"), formatos BR (15.655 / 8,8), referências existentes, cobertura M1–M4, proxies/maturidade declarados, política clínica/alarmista/PII/URL, coerência de direção da M1, datas do relatório e tamanho do resumo; 32 casos
   - Aceite: modelos `Claim/Narrative/NewsPlan`; extração de números/datas/URLs; match com métricas/artigos **e `evidence_refs` ⊆ `EvidencePack`** (números de notícias só como "segundo {fonte}"); cobertura M1–M4 e limitações (proxy/maturidade, dias excluídos por `settle_days`); política de conteúdo clínico; verdicts com `rule_id`.
   - Verifica: ≥ 10 narrativas com número inventado/arredondamento indevido/URL falsa bloqueadas; narrativa correta passa.
   - Arquivos: `agent/schemas.py`, `guardrails/grounding.py`, `tests/guardrails/test_grounding.py`. Dep.: T2, T8
