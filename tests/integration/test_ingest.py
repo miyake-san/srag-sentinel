@@ -34,8 +34,8 @@ async def test_ingest_loads_aggregates_and_manifest_and_is_idempotent(
 ) -> None:
     source = write_fixture(tmp_path / "srag.parquet")
 
-    first = await ingest(settings, [source])
-    second = await ingest(settings, [source])
+    first = await ingest(settings, [source], allow_partial=True)
+    second = await ingest(settings, [source], allow_partial=True)
 
     async with reader_connection(settings) as connection:
         stored = await SurrealCountersReader(connection).daily_counters(

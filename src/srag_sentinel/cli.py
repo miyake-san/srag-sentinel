@@ -8,11 +8,11 @@ from datetime import UTC, date, datetime
 from pydantic import ValidationError
 
 from srag_sentinel import __version__
-from srag_sentinel.agent.tools.metrics import NoDataError, ScopeArgs
+from srag_sentinel.agent.tools.metrics import DEFAULT_SETTLE_DAYS, NoDataError, ScopeArgs
 from srag_sentinel.agent.tools.runner import load_metrics_and_series
 from srag_sentinel.data.ingest.discovery import SourceDiscoveryError
 from srag_sentinel.data.ingest.pipeline import IngestManifest
-from srag_sentinel.data.ingest.service import ingest, resolve_sources
+from srag_sentinel.data.ingest.service import PartialIngestError, ingest, resolve_sources
 from srag_sentinel.data.ingest.transform import SchemaMismatchError
 from srag_sentinel.db.init import SchemaInitError, init_database
 from srag_sentinel.reporting.text import format_metrics, format_series
@@ -40,11 +40,22 @@ def build_parser() -> argparse.ArgumentParser:
         action="append",
         help="explicit Parquet URL or path (repeatable); skips portal discovery",
     )
+    ingest.add_argument(
+        "--allow-partial",
+        action="store_true",
+        help="accept a single yearly file (days spanning files may be understated)",
+    )
 
     metrics = commands.add_parser("metrics", help="print the SRAG metrics and chart series")
     metrics.add_argument("--uf", default="BR", help="'BR' (default) or a UF code such as SP")
     metrics.add_argument("--as-of", type=date.fromisoformat, help="YYYY-MM-DD (default: latest)")
     metrics.add_argument("--window-days", type=int, default=30, help="window length, 7-90")
+    metrics.add_argument(
+        "--settle-days",
+        type=int,
+        default=DEFAULT_SETTLE_DAYS,
+        help="newest days to leave out when --as-of is not given (notification lag)",
+    )
 
     db = commands.add_parser("db", help="database administration")
     db_commands = db.add_subparsers(dest="db_command", required=True)
@@ -60,17 +71,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "db" and args.db_command == "init":
         return _db_init()
     if args.command == "ingest":
-        return _ingest(years=args.years, urls=args.url)
+        return _ingest(years=args.years, urls=args.url, allow_partial=args.allow_partial)
     if args.command == "metrics":
-        return _metrics(uf=args.uf, as_of=args.as_of, window_days=args.window_days)
+        return _metrics(
+            uf=args.uf,
+            as_of=args.as_of,
+            window_days=args.window_days,
+            settle_days=args.settle_days,
+        )
 
     parser.print_help()
     return 0
 
 
-def _metrics(*, uf: str, as_of: date | None, window_days: int) -> int:
+def _metrics(*, uf: str, as_of: date | None, window_days: int, settle_days: int) -> int:
     try:
-        scope = ScopeArgs(uf=uf, as_of=as_of, window_days=window_days)
+        scope = ScopeArgs(uf=uf, as_of=as_of, window_days=window_days, settle_days=settle_days)
         metrics, series = asyncio.run(load_metrics_and_series(get_settings(), scope))
     except (ValidationError, ValueError, NoDataError) as error:
         print(f"error: {error}")
@@ -80,15 +96,15 @@ def _metrics(*, uf: str, as_of: date | None, window_days: int) -> int:
     return 0
 
 
-def _ingest(*, years: list[int] | None, urls: list[str] | None) -> int:
+def _ingest(*, years: list[int] | None, urls: list[str] | None, allow_partial: bool) -> int:
     async def _run() -> IngestManifest:
         settings = get_settings()
         sources = urls or await resolve_sources(years or default_years())
-        return await ingest(settings, sources)
+        return await ingest(settings, sources, allow_partial=allow_partial)
 
     try:
         manifest = asyncio.run(_run())
-    except (SourceDiscoveryError, SchemaMismatchError) as error:
+    except (SourceDiscoveryError, SchemaMismatchError, PartialIngestError) as error:
         print(f"error: {error}")
         return 2
     print(

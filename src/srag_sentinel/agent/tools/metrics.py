@@ -23,6 +23,9 @@ from srag_sentinel.domain.series import (
 
 NATIONAL = "BR"
 MIN_AS_OF = date(2019, 1, 1)
+# The newest days are always incomplete (median notification lag is about 4 days, and weekends
+# add dips), which would bias growth downwards. See ADR 0015.
+DEFAULT_SETTLE_DAYS = 3
 DAILY_POINTS = 30
 MONTHLY_POINTS = 12
 
@@ -37,8 +40,16 @@ class ScopeArgs(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     uf: str = NATIONAL
-    as_of: date | None = Field(default=None, description="defaults to the latest available day")
+    as_of: date | None = Field(
+        default=None, description="defaults to the latest available day minus settle_days"
+    )
     window_days: int = Field(default=30, ge=7, le=90)
+    settle_days: int = Field(
+        default=DEFAULT_SETTLE_DAYS,
+        ge=0,
+        le=14,
+        description="most recent days left out when as_of is not given (notification lag)",
+    )
 
     @field_validator("uf")
     @classmethod
@@ -59,7 +70,7 @@ async def _resolve_as_of(reader: CountersReader, args: ScopeArgs) -> date:
     if latest is None:
         raise NoDataError("no data available; run `srag-sentinel ingest` first")
     if args.as_of is None:
-        return latest
+        return max(latest - timedelta(days=args.settle_days), MIN_AS_OF)
     if args.as_of > latest:
         raise ValueError(f"as_of {args.as_of} is after the latest available day {latest}")
     return args.as_of
@@ -70,13 +81,21 @@ async def get_srag_metrics(reader: CountersReader, args: ScopeArgs) -> MetricsPa
     as_of = await _resolve_as_of(reader, args)
     start = as_of - timedelta(days=2 * args.window_days - 1)
     counters = await reader.daily_counters(uf=args.uf, start=start, end=as_of)
-    return compute_metrics(
+    payload = compute_metrics(
         counters,
         as_of=as_of,
         window_days=args.window_days,
         scope=args.uf,
         retrieved_on=await reader.last_retrieved_on(),
     )
+    latest = await reader.latest_day()
+    if latest is not None and latest > as_of and args.as_of is None:
+        note = (
+            f"Os {(latest - as_of).days} dias mais recentes (após {as_of}) foram excluídos da "
+            "análise por defasagem de notificação; eles ainda estão incompletos."
+        )
+        return payload.model_copy(update={"data_maturity": (note, *payload.data_maturity)})
+    return payload
 
 
 async def get_srag_series(reader: CountersReader, args: ScopeArgs) -> SeriesPayload:

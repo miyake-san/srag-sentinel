@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 from pydantic import ValidationError
@@ -60,8 +60,46 @@ ROWS = [
 ]
 
 
-async def test_metrics_default_to_the_latest_day_and_national_scope() -> None:
+async def test_default_as_of_leaves_out_the_newest_days_and_says_so() -> None:
     payload = await get_srag_metrics(FakeReader(ROWS), ScopeArgs())
+
+    assert payload.as_of == date(2026, 11, 12)  # latest 2026-11-15 minus 3 settle days
+    assert payload.cases_current == 50  # only RJ on 2026-11-01 is still inside the window
+    assert any("3 dias mais recentes" in note for note in payload.data_maturity)
+
+
+async def test_settle_days_zero_uses_the_latest_day_without_a_note() -> None:
+    payload = await get_srag_metrics(FakeReader(ROWS), ScopeArgs(settle_days=0))
+
+    assert payload.as_of == LATEST
+    assert not any("mais recentes" in note for note in payload.data_maturity)
+
+
+async def test_explicit_as_of_is_never_shifted_by_settle_days() -> None:
+    payload = await get_srag_metrics(FakeReader(ROWS), ScopeArgs(as_of=LATEST, settle_days=10))
+
+    assert payload.as_of == LATEST
+
+
+async def test_settling_removes_the_incomplete_tail_that_biased_growth_down() -> None:
+    steady = [
+        make("SP", date(2026, 10, 29) + timedelta(days=offset), 100) for offset in range(14)
+    ]  # 2026-10-29 .. 2026-11-11, flat at 100 per day
+    tail = [make("SP", date(2026, 11, day), 5) for day in (12, 13, 14)]  # incomplete newest days
+    reader = FakeReader([*steady, *tail])
+
+    settled = await get_srag_metrics(reader, ScopeArgs(window_days=7))
+    raw = await get_srag_metrics(reader, ScopeArgs(window_days=7, settle_days=0))
+
+    assert settled.as_of == date(2026, 11, 11)
+    assert settled.metrics[0].value == 0.0  # flat series, correctly read as no change
+    assert raw.as_of == date(2026, 11, 14)
+    assert raw.metrics[0].value is not None
+    assert raw.metrics[0].value < -0.4  # the artefact the settle days remove
+
+
+async def test_metrics_default_to_national_scope() -> None:
+    payload = await get_srag_metrics(FakeReader(ROWS), ScopeArgs(settle_days=0))
 
     assert payload.as_of == LATEST
     assert payload.scope == "BR"
@@ -70,7 +108,7 @@ async def test_metrics_default_to_the_latest_day_and_national_scope() -> None:
 
 
 async def test_metrics_can_be_scoped_to_one_uf() -> None:
-    payload = await get_srag_metrics(FakeReader(ROWS), ScopeArgs(uf="RJ"))
+    payload = await get_srag_metrics(FakeReader(ROWS), ScopeArgs(uf="RJ", settle_days=0))
 
     assert payload.cases_current == 80
 
@@ -95,15 +133,16 @@ async def test_empty_database_is_reported_clearly() -> None:
 
 
 async def test_recent_ingestion_adds_a_maturity_warning() -> None:
-    fresh = await get_srag_metrics(FakeReader(ROWS, retrieved_on=date(2026, 11, 16)), ScopeArgs())
-    old = await get_srag_metrics(FakeReader(ROWS, retrieved_on=date(2026, 12, 31)), ScopeArgs())
+    args = ScopeArgs(settle_days=0)
+    fresh = await get_srag_metrics(FakeReader(ROWS, retrieved_on=date(2026, 11, 16)), args)
+    old = await get_srag_metrics(FakeReader(ROWS, retrieved_on=date(2026, 12, 31)), args)
 
     assert fresh.data_maturity
     assert not old.data_maturity
 
 
 async def test_series_have_thirty_daily_and_twelve_monthly_points() -> None:
-    series = await get_srag_series(FakeReader(ROWS), ScopeArgs())
+    series = await get_srag_series(FakeReader(ROWS), ScopeArgs(settle_days=0))
 
     assert len(series.daily) == 30
     assert len(series.monthly) == 12
@@ -120,6 +159,8 @@ async def test_series_have_thirty_daily_and_twelve_monthly_points() -> None:
         {"uf": "BR'; REMOVE"},
         {"window_days": 6},
         {"window_days": 91},
+        {"settle_days": -1},
+        {"settle_days": 15},
         {"as_of": date(2018, 12, 31)},
         {"unexpected": 1},
     ],

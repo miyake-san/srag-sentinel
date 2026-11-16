@@ -21,7 +21,7 @@ Parte de [SPEC.md](../../SPEC.md).
 5. **Upsert** no SurrealDB (`data.srag_daily`, id determinístico `srag_daily:[uf, day]`) em lotes; grava `data.ingest_manifest`: URL, `retrieved_at`, sha256 do raw, linhas lidas/mantidas/descartadas por regra, `data_snapshot_sha256` (hash canônico de todos os agregados). O manifest entra na auditoria de cada relatório.
 6. Se `--keep-raw` foi usado, a cópia local fica só em `data/raw/` (não versionada).
 
-Idempotente: mesmos arquivos ⇒ mesmos agregados e mesmo `data_snapshot_sha256`. **Nenhuma linha individual é gravada no banco, em log ou em trace.**
+Idempotente: mesmos arquivos ⇒ mesmos agregados e mesmo `data_snapshot_sha256`. **Exige pelo menos dois arquivos anuais** (um mesmo dia pode estar em dois arquivos); `--allow-partial` aceita o risco. **Nenhuma linha individual é gravada no banco, em log ou em trace.**
 
 ### 2.1 Tabela `data.srag_daily` (um registro por UF × dia de notificação)
 
@@ -93,7 +93,7 @@ Cada métrica reporta **completude** (`denominador / casos na janela`) para torn
 
 ## 5. Conceitos comuns
 
-- **Data de referência `as_of`:** default = `max(day)` de `data.srag_daily` (não o relógio), para refletir o que o banco realmente sabe. Parâmetro explícito permitido (`as_of ≤ max`).
+- **Data de referência `as_of`:** default = `max(day)` de `data.srag_daily` **menos `settle_days` (3)** — os dias mais recentes são sempre incompletos e enviesariam a M1 para baixo ([ADR 0015](../adr/0015-settle-days-and-partial-ingest-guard.md)); a exclusão é declarada no relatório. `as_of` explícito nunca é deslocado, para refletir o que o banco realmente sabe. Parâmetro explícito permitido (`as_of ≤ max`).
 - **Caso:** linha curada com `DT_NOTIFIC` válida e (`HOSPITAL = 1` — SRAG é, por definição, hospitalizada; linhas `HOSPITAL ∈ {2,9}` são contadas apenas em `casos_notificados`, não nas métricas de gravidade). *Validar na tarefa 0 se o filtro `HOSPITAL=1` é redundante no dataset.*
 - **Eixo temporal:** `DT_NOTIFIC` (notificação). *Trade-off:* início de sintomas é epidemiologicamente mais fiel, mas os últimos dias ficam artificialmente baixos por atraso de notificação, gerando falsa queda; notificação mede o que foi reportado e evita esse artefato (ainda sujeita a efeito dia-da-semana). ADR 0011.
 - **Janela `W`:** default 30 dias, corrente = `[as_of−W+1, as_of]`, anterior = `[as_of−2W+1, as_of−W]`.
