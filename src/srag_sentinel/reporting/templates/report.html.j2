@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="{{ csp }}">
+<meta name="generator" content="srag-sentinel">
+<meta name="author" content="SRAG Sentinel">
+<meta name="description" content="Relatório de SRAG — {{ report.metrics.scope }} — dados até {{ report.metrics.as_of | date_br }}">
+<title>Relatório SRAG — {{ report.metrics.scope }} — {{ report.metrics.as_of | date_br }}</title>
+<style>{{ css }}</style>
+</head>
+<body>
+<header>
+  <h1>Relatório de Síndrome Respiratória Aguda Grave (SRAG)</h1>
+  <p class="subtitle">Escopo: <strong>{{ report.metrics.scope }}</strong> · dados até <strong>{{ report.metrics.as_of | date_br }}</strong> · janela de {{ report.metrics.window_days }} dias ({{ report.metrics.current_window.start | date_br }} a {{ report.metrics.current_window.end | date_br }})</p>
+  {% if report.status == "degraded" %}
+  <div class="banner" role="status">
+    <strong>Relatório degradado.</strong>
+    <ul>
+    {% for code in report.degradations %}
+      <li>{{ degradation_text.get(code, code) }}</li>
+    {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</header>
+
+<main>
+{% if report.narrative %}
+<section aria-labelledby="resumo">
+  <h2 id="resumo">Resumo</h2>
+  <p>{{ report.narrative.summary }}</p>
+</section>
+{% endif %}
+
+<section aria-labelledby="metricas">
+  <h2 id="metricas">Métricas</h2>
+  <div class="cards">
+  {% for metric in report.metrics.metrics %}
+    <article class="card">
+      <h3>{{ metric.label }}{% if metric.is_proxy %} <span class="proxy" title="Aproximação: a definição não é exata">proxy</span>{% endif %}</h3>
+      <p class="value">{% if metric.metric_id == "M1" %}{{ metric.value | pct_signed }}{% else %}{{ metric.value | pct }}{% endif %}</p>
+      <p class="detail">{{ metric.numerator | num }} de {{ metric.denominator | num }}{% if metric.completeness is not none %} · completude {{ metric.completeness | pct }}{% endif %}</p>
+      <p class="detail">{{ metric.window_start | date_br }} a {{ metric.window_end | date_br }}</p>
+      {% for caveat in metric.caveats %}
+      <p class="caveat">{{ caveat }}</p>
+      {% endfor %}
+    </article>
+  {% endfor %}
+  </div>
+  <p class="detail">Casos na janela atual: {{ report.metrics.cases_current | num }} · janela anterior: {{ report.metrics.cases_previous | num }}.</p>
+  {% for warning in report.metrics.data_maturity %}
+  <p class="caveat">{{ warning }}</p>
+  {% endfor %}
+</section>
+
+{% if report.narrative %}
+<section aria-labelledby="comentarios">
+  <h2 id="comentarios">Leitura das métricas</h2>
+  <ul>
+  {% for claim in report.narrative.metric_commentary %}
+    <li>{{ claim.text }}{% for ref in claim.metric_refs %} <span class="ref">{{ metric_labels.get(ref, ref) }}</span>{% endfor %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section aria-labelledby="graficos">
+  <h2 id="graficos">Gráficos</h2>
+  <figure>{{ daily_svg }}</figure>
+  <figure>{{ monthly_svg }}</figure>
+</section>
+
+{% if report.narrative and report.narrative.news_context %}
+<section aria-labelledby="noticias">
+  <h2 id="noticias">Contexto das notícias</h2>
+  <p class="detail">Texto gerado por modelo de linguagem a partir de manchetes e trechos de terceiros; cada afirmação cita a fonte.</p>
+  <ul>
+  {% for claim in report.narrative.news_context %}
+    <li>{{ claim.text }}{% for ref in claim.article_refs %}{% if ref in articles %} <span class="ref">{{ articles[ref].source }}</span>{% endif %}{% endfor %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if report.articles %}
+<section aria-labelledby="fontes">
+  <h2 id="fontes">Fontes consultadas</h2>
+  <ol class="sources">
+  {% for article in report.articles %}
+    <li>
+      {% set link = article.url | safe_url %}
+      {% if link %}<a href="{{ link }}" rel="noopener noreferrer nofollow">{{ article.title }}</a>{% else %}{{ article.title }}{% endif %}
+      — {{ article.source }} ({{ article.domain }}){% if article.published_at %}, {{ article.published_at | date_br }}{% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<section aria-labelledby="limitacoes">
+  <h2 id="limitacoes">Limitações</h2>
+  <ul>
+    <li>UTI e vacinação são aproximações calculadas sobre registros com a informação preenchida; não são taxas populacionais.</li>
+    <li>As notificações dos dias mais recentes ainda estão sendo digitadas; os últimos dias foram excluídos para reduzir o viés.</li>
+    <li>Os dados são agregados por dia e UF; nenhum dado individual é armazenado ou exibido.</li>
+    {% if report.narrative %}{% for item in report.narrative.limitations %}
+    <li>{{ item }}</li>
+    {% endfor %}{% endif %}
+  </ul>
+</section>
+</main>
+
+<footer>
+  <h2>Proveniência</h2>
+  <dl>
+    <dt>Execução</dt><dd>{{ report.run_id }}</dd>
+    <dt>Gerado em</dt><dd>{{ report.generated_at.strftime("%d/%m/%Y %H:%M") }} UTC</dd>
+    <dt>Fonte dos dados</dt><dd>OpenDATASUS — SRAG (agregados diários por UF)</dd>
+    <dt>Modelos</dt><dd>{% for task, model in report.models.items() %}{{ task }}: {{ model }}{% if not loop.last %}; {% endif %}{% else %}nenhum{% endfor %}</dd>
+    <dt>Prompts</dt><dd>{{ report.prompts | join(", ") }}</dd>
+    <dt>Situação</dt><dd>{{ "completo" if report.status == "ok" else "degradado" }}</dd>
+  </dl>
+  <p class="detail">Este relatório é informativo e não substitui avaliação de saúde pública. O texto narrativo foi escrito por um modelo de linguagem e verificado automaticamente contra as métricas acima.</p>
+</footer>
+</body>
+</html>

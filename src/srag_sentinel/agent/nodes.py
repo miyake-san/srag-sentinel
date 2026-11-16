@@ -1,5 +1,6 @@
 """Graph nodes. Each returns only the state fields it changes and is audited by ``_audited``."""
 
+import asyncio
 import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
@@ -306,18 +307,25 @@ class _Context:
             models=dict(self.deps.models),
             prompts=(self.plan_prompt.ref, self.synthesis_prompt.ref),
         )
-        return {"report": draft}
+        if self.deps.bundler is None:
+            return {"report": draft}
+        # Rendering is CPU-bound (matplotlib, WeasyPrint): keep it off the event loop.
+        bundle = await asyncio.to_thread(self.deps.bundler, draft)
+        return {"report": bundle.draft, "bundle": bundle}
 
     async def finalize(self, state: ReportState) -> Update:
-        status = (
-            "rejected" if state.rejected else (state.report.status if state.report else "failed")
-        )
+        report = state.report
+        status = "rejected" if state.rejected else (report.status if report else "failed")
+        degradations = [*state.degradations, *(report.degradations if report else ())]
+        details = {"status": status, "degradations": ",".join(dict.fromkeys(degradations))}
+        if state.bundle is not None:
+            details.update(state.bundle.hashes)
         self.deps.recorder.record(
             actor="system",
             node="finalize",
             event="run_end",
-            outputs=state.report.model_dump(mode="json") if state.report else None,
-            details={"status": status, "degradations": ",".join(dict.fromkeys(state.degradations))},
+            outputs=report.model_dump(mode="json") if report else None,
+            details=details,
         )
         return {}
 

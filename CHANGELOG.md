@@ -55,8 +55,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Agent graph (LangGraph)**: fixed flow `validate → metrics → plan news → collect news → synthesize → verify →
   render → finalize` with one bounded retry carrying the G3 feedback, versioned prompts, per-node audit and
   degradations (`PLAN_FALLBACK`, `NEWS_UNAVAILABLE`, `NARRATIVE_REJECTED`); a lying model yields a metrics-only report.
-- 383 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), 97% coverage,
-  ruff and strict mypy clean.
+- **Report rendering**: deterministic accessible SVG charts (daily 30 days with 7-day moving average, monthly 12 months
+  with the partial month hatched), a self-contained HTML report (Jinja2 autoescape, no JavaScript, no remote assets,
+  strict CSP, http(s)-only source links, proxy badges, limitations and provenance), a versioned `report.json` with the
+  artifact hashes, and a PDF rendered from the same HTML by WeasyPrint with a fetcher that refuses every non-`data:`
+  URL. A PDF failure degrades the report (`PDF_UNAVAILABLE`) instead of failing it; artifact hashes are audited.
+- 405 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), ruff and strict
+  mypy clean. The real-PDF smoke test is skipped on hosts without the Pango libraries.
 
 ### Changed
 - Python target is **3.14** rather than 3.15: `zstandard` and `pyyaml` have no cp315 wheels (ADR 0008).

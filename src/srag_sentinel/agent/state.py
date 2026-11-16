@@ -11,6 +11,7 @@ from srag_sentinel.agent.tools.metrics import ScopeArgs
 from srag_sentinel.domain.models import MetricsPayload
 from srag_sentinel.domain.series import SeriesPayload
 from srag_sentinel.guardrails.news import SafeArticle
+from srag_sentinel.reporting.bundle import ReportBundle
 
 NEWS_UNAVAILABLE = "NEWS_UNAVAILABLE"
 PLAN_FALLBACK = "PLAN_FALLBACK"
@@ -37,3 +38,4 @@ class ReportState(BaseModel):
     verified: bool = False
     degradations: Annotated[list[str], operator.add] = Field(default_factory=list)
     report: ReportDraft | None = None
+    bundle: ReportBundle | None = None

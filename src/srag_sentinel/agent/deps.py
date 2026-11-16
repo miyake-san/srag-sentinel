@@ -5,12 +5,14 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Protocol
 
+from srag_sentinel.agent.report import ReportDraft
 from srag_sentinel.data.ports import CountersReader
 from srag_sentinel.governance.recorder import AuditRecorder
 from srag_sentinel.guardrails.budget import RunBudget
 from srag_sentinel.guardrails.news import NewsPolicy
 from srag_sentinel.llm.router.cascade import Router
 from srag_sentinel.news.models import NewsQuery, NewsResult
+from srag_sentinel.reporting.bundle import ReportBundle
 
 
 class NewsCollector(Protocol):
@@ -32,4 +34,6 @@ class AgentDeps:
     budget: RunBudget
     models: dict[str, str] = field(default_factory=dict)
     news_policy: NewsPolicy | None = None
+    bundler: Callable[[ReportDraft], ReportBundle] | None = None
+    """Renders HTML/JSON/PDF from the draft; ``None`` leaves the run with the draft only."""
     clock: Callable[[], datetime] = lambda: datetime.now(UTC)

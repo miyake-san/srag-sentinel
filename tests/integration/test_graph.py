@@ -3,6 +3,7 @@
 No database, network or API key is needed: the ports are replaced by fakes.
 """
 
+import json
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -24,6 +25,8 @@ from srag_sentinel.llm.router.policy import load_default_policy
 from srag_sentinel.news.chain import ChainedNewsProvider
 from srag_sentinel.news.fake import FakeNewsProvider
 from srag_sentinel.news.models import Article, article_id
+from srag_sentinel.reporting.bundle import build_bundle
+from srag_sentinel.reporting.pdf import PdfUnavailableError
 
 NOW = datetime(2026, 11, 16, 12, 0, tzinfo=UTC)
 LATEST = date(2026, 11, 15)
@@ -336,3 +339,55 @@ async def test_settle_days_flow_through_the_graph(settle: int) -> None:
 
     assert state.metrics is not None
     assert state.metrics.as_of == LATEST - timedelta(days=settle)
+
+
+def _fake_pdf(_html: str) -> bytes:
+    return b"%PDF-1.7 fake"
+
+
+def _no_pdf(_html: str) -> bytes:
+    raise PdfUnavailableError("no pango")
+
+
+async def test_the_run_renders_html_json_pdf_and_audits_their_hashes() -> None:
+    deps, store, _, _ = build()
+    deps.bundler = lambda draft: build_bundle(draft, pdf_renderer=_fake_pdf)
+
+    state = await run_report(deps, {"uf": "BR", "settle_days": 0})
+
+    bundle = state.bundle
+    assert bundle is not None and state.report is not None and state.report.status == "ok"
+    assert "Casos recuaram 25,0%" in bundle.html
+    document = json.loads(bundle.json)
+    assert document["report"]["run_id"] == state.run_id
+    run_end = next(e for e in store.events if e.event == "run_end")
+    assert run_end.details["html_sha256"] == document["artifacts"]["html_sha256"]
+    assert run_end.details["pdf_sha256"] == document["artifacts"]["pdf_sha256"]
+    assert verify_chain(store.events).ok
+
+
+async def test_a_pdf_failure_degrades_the_run_and_is_audited() -> None:
+    deps, store, _, _ = build()
+    deps.bundler = lambda draft: build_bundle(draft, pdf_renderer=_no_pdf)
+
+    state = await run_report(deps, {"uf": "BR", "settle_days": 0})
+
+    assert state.bundle is not None and state.bundle.pdf is None
+    assert state.report is not None and state.report.status == "degraded"
+    assert "PDF_UNAVAILABLE" in state.report.degradations
+    run_end = next(e for e in store.events if e.event == "run_end")
+    assert "PDF_UNAVAILABLE" in str(run_end.details["degradations"])
+    assert "pdf_sha256" not in run_end.details
+
+
+async def test_a_metrics_only_report_still_renders_its_charts() -> None:
+    bad = narrative("Casos recuaram 12,4% no período.")
+    deps, _, _, _ = build(large=[bad, bad])
+    deps.bundler = lambda draft: build_bundle(draft, pdf_renderer=_fake_pdf)
+
+    state = await run_report(deps, {"uf": "BR", "settle_days": 0})
+
+    assert state.bundle is not None
+    assert "Relatório degradado" in state.bundle.html
+    assert "<svg" in state.bundle.html
+    assert "12,4%" not in state.bundle.html  # the rejected text never reaches the reader

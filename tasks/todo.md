@@ -109,11 +109,11 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
   - Aceite: nós `build_kg` (router small + juiz) e `retrieve_context` entre `collect_news` e `synthesize`; `Narrative` com `evidence_refs`; G3 valida `evidence_id`; degradação `KG_UNAVAILABLE`; `SRAG_KG_ENABLED=false` volta ao fluxo de notícias planas; relatório mostra evidências com `graph_path` e proveniência (quem extraiu/julgou).
   - Verifica: execução completa com fakes e SurrealDB real; caminho KG desligado/falho; auditoria com `kg_write`/`router_decision`/`judge_verdict`.
   - Arquivos: `agent/{graph,nodes,state}.py`, `agent/schemas.py`, `guardrails/grounding.py`, `tests/integration/test_graph_kg.py`. Dep.: T11, T6c, T7c, T10c (skills `srag-graphrag-kg`, `srag-langgraph`)
-- [ ] **T12 — Relatório HTML + JSON + gráficos SVG** (M) [02 §7][03 §5]
+- [x] **T12 — Relatório HTML + JSON + gráficos SVG** (M) [02 §7][03 §5] — ✔ gráficos SVG determinísticos e acessíveis (matplotlib OO, mês parcial hachurado), HTML Jinja2 autoescape sem JS/recursos remotos com CSP, `report.json` v1.0 com hashes, links só http(s); o estilo (tela e `@media print`) fica em `templates/report.css`
   - Aceite: matplotlib SVG (diário 30d com média móvel; mensal 12m com mês parcial marcado); Jinja2 autoescape; HTML autocontido com painel de métricas, selo proxy, notícias com links, limitações, proveniência; `report.json` com schema versionado e hashes.
   - Verifica: testes de estrutura/valores; teste XSS com título hostil; CSP/ausência de JS e recursos remotos.
   - Arquivos: `reporting/{charts,render,templates/report.html.j2,models}.py`, `tests/unit/test_reporting.py`. Dep.: T5 (skill `srag-reporting`)
-- [ ] **T13 — PDF do relatório (WeasyPrint)** (S) [03 §5]
+- [x] **T13 — PDF do relatório (WeasyPrint)** (S) [03 §5] — ✔ `render_pdf` a partir do mesmo HTML com fetcher que só aceita `data:`; falha ⇒ `PDF_UNAVAILABLE` (relatório degradado, HTML re-renderizado); hashes no `report.json` e na auditoria (`run_end`). ⚠ o smoke do PDF real é pulado onde faltam as libs do Pango (esta máquina Windows); roda no Docker/CI (T16/T18)
   - Aceite: PDF gerado do mesmo HTML com `@media print`, A4, metadados; `url_fetcher` bloqueando recursos remotos/`file://`; falha ⇒ `PDF_UNAVAILABLE`; hash no `report.json`.
   - Verifica: smoke (abre, páginas > 0, texto extraível); teste de bloqueio do fetcher.
   - Arquivos: `reporting/pdf.py`, `reporting/templates/print.css`, `tests/unit/test_pdf.py`. Dep.: T12, T0d
