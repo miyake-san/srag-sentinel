@@ -27,29 +27,30 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
 
 ## Fase 1 — Fundação e fatia vertical de métricas
 
-- [ ] **T1 — Scaffold do projeto** (M)
+- [x] **T1 — Scaffold do projeto** (M) — ✔ commit 51f4c91 (nota: `.env.example` não pôde ser criado — bloqueado pela política de arquivos `.env*`; variáveis documentadas em `settings.py`)
   - Aceite: `pyproject.toml` (uv, extras de provedores), layout `src/srag_sentinel/…` da SPEC §4, `settings.py` (pydantic-settings, `SecretStr`), `.env.example`, config ruff/mypy-strict/pytest/coverage, `cli.py` com `--version`, teste de smoke.
   - Verifica: comando padrão verde; `uv run srag-sentinel --version`.
   - Arquivos: `pyproject.toml`, `src/srag_sentinel/{settings,cli,__init__}.py`, `.env.example`, `tests/unit/test_smoke.py`. Dep.: T0a
-- [ ] **T2 — Domínio: métricas M1–M4 (TDD)** (M) [02 §5–6]
+- [x] **T2 — Domínio: métricas M1–M4 (TDD)** (M) [02 §5–6] — ✔ cobertura 100 % do domínio
   - Aceite: `MetricResult` imutável; funções puras para M1 (variação 30d vs 30d anterior), M2, M3 e M4 (COVID e influenza) a partir de contadores diários; `None` quando denominador 0; completude e `caveats`/`is_proxy`; avisos de maturidade.
   - Verifica: testes com valores esperados calculados à mão + hypothesis (taxas ∈ [0,1], janelas disjuntas); cobertura `domain/` ≥ 95 %.
   - Arquivos: `domain/{models,metrics,windows}.py`, `tests/unit/test_metrics.py`. Dep.: T1
-- [ ] **T3 — SurrealDB: schema, `db init` e repositório** (M) [02 §2][ADR 0003]
+- [x] **T3 — SurrealDB: schema, `db init` e repositório** (M) [02 §2][ADR 0003] — ✔ (schema em `src/srag_sentinel/db/schema/`; integração contra v4.0.1)
   - Aceite: `db/schema/*.surql` (tabelas `srag_daily`, `ingest_manifest`, `report`, `news_cache`, usuários por papel); `srag-sentinel db init` idempotente; `MetricsRepository` (porta) + adaptador async com consultas parametrizadas, usuário `api_ro` read-only.
   - Verifica: testes de integração contra container: upsert idempotente, consulta = valores da fixture, `api_ro` não escreve.
   - Arquivos: `db/schema/*.surql`, `data/repository.py`, `data/surreal.py`, `tests/integration/test_repository.py`. Dep.: T0c, T1
-- [ ] **T4 — Ingestão DATASUS → agregados** (M) [02 §2–4]
+- [x] **T4 — Ingestão DATASUS → agregados** (M) [02 §2–4] — ✔ real: 585 334 linhas (2025+2026). Allowlist efetiva = 7 colunas (`DT_SIN_PRI` fora até a métrica de defasagem existir); dedupe de linhas idênticas não é possível sem ID de notificação (não aplicado)
   - Aceite: `srag-sentinel ingest --years …` resolve a URL pela página do recurso (regex restrita ao prefixo S3; `--url` override), valida schema, lê remotamente só as 8 colunas da allowlist (Polars), trata `null` como ignorado, agrega por UF×dia, upsert + manifest com `data_snapshot_sha256`; nenhuma linha individual em log/banco.
   - Verifica: fixture Parquet sintética → agregados esperados; rerun ⇒ mesmo hash; teste de que colunas fora da allowlist nunca são lidas.
   - Arquivos: `data/{ingest,clean,aggregate}.py`, `tests/fixtures/srag_sample.parquet`, `tests/integration/test_ingest.py`. Dep.: T0b, T2, T3
-- [ ] **T5 — CLI: `metrics` e séries (primeira fatia de ponta a ponta)** (S) [03 §3]
+- [x] **T5 — CLI: `metrics` e séries (primeira fatia de ponta a ponta)** (S) [03 §3] — ✔ executado sobre dados reais
   - Aceite: tools `get_srag_metrics` e `get_srag_series` (Pydantic in/out) sobre o repositório; `srag-sentinel metrics --uf BR` imprime M1–M4 e séries diária 30d/mensal 12m (mês corrente parcial).
   - Verifica: testes unitários com repositório fake + integração; execução manual sobre dados reais ingeridos (conferir contra amostra do dataset).
   - Arquivos: `agent/tools/metrics.py`, `data/series.py`, `cli.py`, `tests/…`. Dep.: T2, T3, T4
 
 ### Checkpoint 1 (valor mínimo demonstrável)
-- [ ] Comando padrão verde · ingestão real roda · `metrics` imprime as 4 métricas e as 2 séries com dados reais · **revisão humana**
+- [x] Comando padrão verde (112 testes, 96 % de cobertura, ruff e mypy strict limpos) · ingestão real roda · `metrics` imprime as métricas e as 2 séries com dados reais
+- [ ] **Revisão humana antes da Fase 2** (aguardando OK)
 
 ## Fase 2 — Agente, guardrails e relatório
 

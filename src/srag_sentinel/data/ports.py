@@ -13,8 +13,16 @@ class CountersReader(Protocol):
         """Return per-UF daily counters in ``[start, end]``; ``uf='BR'`` means every UF."""
         ...
 
+    async def daily_cases(self, *, uf: str, start: date, end: date) -> dict[date, int]:
+        """Return notified cases per day in ``[start, end]`` (days without data are absent)."""
+        ...
+
     async def latest_day(self) -> date | None:
         """Return the most recent notification day available, or None when empty."""
+        ...
+
+    async def last_retrieved_on(self) -> date | None:
+        """Return the date of the most recent ingestion, or None when nothing was ingested."""
         ...
 
 

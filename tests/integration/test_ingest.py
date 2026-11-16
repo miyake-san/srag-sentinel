@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import polars as pl
@@ -41,6 +41,12 @@ async def test_ingest_loads_aggregates_and_manifest_and_is_idempotent(
         stored = await SurrealCountersReader(connection).daily_counters(
             uf="BR", start=date(2026, 11, 1), end=date(2026, 11, 30)
         )
+    async with reader_connection(settings) as connection:
+        reader = SurrealCountersReader(connection)
+        per_day = await reader.daily_cases(uf="BR", start=date(2026, 11, 1), end=date(2026, 11, 30))
+        retrieved_on = await reader.last_retrieved_on()
+    assert per_day == {date(2026, 11, 10): 2, date(2026, 11, 11): 1}
+    assert retrieved_on == datetime.now(UTC).date()
     sp = next(c for c in stored if c.uf == "SP")
     assert (sp.cases, sp.deaths, sp.uti_yes) == (2, 1, 1)
     assert sum(c.cases for c in stored) == 3  # rerun did not double the counts

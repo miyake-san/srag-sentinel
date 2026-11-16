@@ -3,14 +3,19 @@
 import argparse
 import asyncio
 from collections.abc import Sequence
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+
+from pydantic import ValidationError
 
 from srag_sentinel import __version__
+from srag_sentinel.agent.tools.metrics import NoDataError, ScopeArgs
+from srag_sentinel.agent.tools.runner import load_metrics_and_series
 from srag_sentinel.data.ingest.discovery import SourceDiscoveryError
 from srag_sentinel.data.ingest.pipeline import IngestManifest
 from srag_sentinel.data.ingest.service import ingest, resolve_sources
 from srag_sentinel.data.ingest.transform import SchemaMismatchError
 from srag_sentinel.db.init import SchemaInitError, init_database
+from srag_sentinel.reporting.text import format_metrics, format_series
 from srag_sentinel.settings import get_settings
 
 
@@ -36,6 +41,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="explicit Parquet URL or path (repeatable); skips portal discovery",
     )
 
+    metrics = commands.add_parser("metrics", help="print the SRAG metrics and chart series")
+    metrics.add_argument("--uf", default="BR", help="'BR' (default) or a UF code such as SP")
+    metrics.add_argument("--as-of", type=date.fromisoformat, help="YYYY-MM-DD (default: latest)")
+    metrics.add_argument("--window-days", type=int, default=30, help="window length, 7-90")
+
     db = commands.add_parser("db", help="database administration")
     db_commands = db.add_subparsers(dest="db_command", required=True)
     db_commands.add_parser("init", help="create namespace, databases, schema and role users")
@@ -51,8 +61,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _db_init()
     if args.command == "ingest":
         return _ingest(years=args.years, urls=args.url)
+    if args.command == "metrics":
+        return _metrics(uf=args.uf, as_of=args.as_of, window_days=args.window_days)
 
     parser.print_help()
+    return 0
+
+
+def _metrics(*, uf: str, as_of: date | None, window_days: int) -> int:
+    try:
+        scope = ScopeArgs(uf=uf, as_of=as_of, window_days=window_days)
+        metrics, series = asyncio.run(load_metrics_and_series(get_settings(), scope))
+    except (ValidationError, ValueError, NoDataError) as error:
+        print(f"error: {error}")
+        return 2
+    print(format_metrics(metrics))
+    print(format_series(series))
     return 0
 
 

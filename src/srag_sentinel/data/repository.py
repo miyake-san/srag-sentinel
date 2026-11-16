@@ -1,6 +1,6 @@
 """SurrealDB adapters for the counters ports. All values are bound as query variables."""
 
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from surrealdb import AsyncSurrealConnection
@@ -33,12 +33,31 @@ class SurrealCountersReader:
         )
         return [_to_counters(row) for row in found]
 
+    async def daily_cases(self, *, uf: str, start: date, end: date) -> dict[date, int]:
+        """Return notified cases per day in ``[start, end]`` (days without data are absent)."""
+        found = await rows(
+            self._connection,
+            "SELECT day, math::sum(cases) AS cases FROM srag_daily "
+            "WHERE day >= $start AND day <= $end AND ($uf = 'BR' OR uf = $uf) "
+            "GROUP BY day ORDER BY day;",
+            {"start": start.isoformat(), "end": end.isoformat(), "uf": uf},
+        )
+        return {date.fromisoformat(row["day"]): int(row["cases"]) for row in found}
+
     async def latest_day(self) -> date | None:
         """Return the most recent notification day available, or None when empty."""
         found = await rows(
             self._connection, "SELECT day FROM srag_daily ORDER BY day DESC LIMIT 1;"
         )
         return date.fromisoformat(found[0]["day"]) if found else None
+
+    async def last_retrieved_on(self) -> date | None:
+        """Return the date of the most recent ingestion, or None when nothing was ingested."""
+        found = await rows(
+            self._connection,
+            "SELECT retrieved_at FROM ingest_manifest ORDER BY retrieved_at DESC LIMIT 1;",
+        )
+        return _as_date(found[0]["retrieved_at"]) if found else None
 
 
 class SurrealCountersWriter:
@@ -77,6 +96,13 @@ class SurrealCountersWriter:
             {"uf": row.uf, "day": row.day.isoformat()},
         )
         return bool(found)
+
+
+def _as_date(value: Any) -> date:
+    """Normalise the SDK's datetime value (datetime or ISO string) to a date."""
+    if isinstance(value, datetime):
+        return value.date()
+    return datetime.fromisoformat(str(value).replace("Z", "+00:00")).date()
 
 
 def _to_record(row: DailyCounters) -> dict[str, Any]:
