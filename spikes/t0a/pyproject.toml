@@ -1,0 +1,28 @@
+[project]
+name = "t0a-spike"
+version = "0.0.0"
+requires-python = ">=3.14"
+dependencies = [
+  "langgraph",
+  "langchain",
+  "langchain-anthropic",
+  "langchain-google-genai",
+  "langchain-nvidia-ai-endpoints",
+  "langchain-openrouter",
+  "surrealdb",
+  "polars",
+  "weasyprint",
+  "fastapi",
+  "uvicorn",
+  "pydantic-settings",
+  "opentelemetry-sdk",
+  "opentelemetry-exporter-otlp",
+  "matplotlib",
+  "jinja2",
+  "httpx",
+  "pytest",
+  "hypothesis",
+  "respx",
+  "ruff",
+  "mypy",
+]

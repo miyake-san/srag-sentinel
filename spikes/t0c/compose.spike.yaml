@@ -1,0 +1,7 @@
+# T0c spike only: throwaway in-memory SurrealDB with test credentials. Not the project Compose file.
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:v4.0.1
+    command: start --user root --pass spike-root-pw --bind 0.0.0.0:8000 memory
+    ports:
+      - "127.0.0.1:18000:8000"
