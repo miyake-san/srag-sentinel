@@ -62,6 +62,14 @@ class SurrealCountersWriter:
             if not await self._exists(batch[-1]):
                 raise WriteRejectedError("upsert stored nothing; check database permissions")
 
+    async def record_manifest(self, manifest: dict[str, Any]) -> None:
+        """Store the manifest describing an ingestion run."""
+        stored = await rows(
+            self._connection, "CREATE ingest_manifest CONTENT $manifest;", {"manifest": manifest}
+        )
+        if not stored:
+            raise WriteRejectedError("manifest stored nothing; check database permissions")
+
     async def _exists(self, row: DailyCounters) -> bool:
         found = await rows(
             self._connection,

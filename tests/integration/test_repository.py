@@ -1,15 +1,14 @@
-from contextlib import AbstractAsyncContextManager
 from datetime import date
 
 import pytest
-from surrealdb import AsyncSurrealConnection
+from helpers import reader_connection, root_connection, writer_connection
 
 from srag_sentinel.data.repository import (
     SurrealCountersReader,
     SurrealCountersWriter,
     WriteRejectedError,
 )
-from srag_sentinel.db.client import open_connection, rows, run
+from srag_sentinel.db.client import rows, run
 from srag_sentinel.db.init import init_database
 from srag_sentinel.domain.metrics import compute_metrics
 from srag_sentinel.domain.models import DailyCounters
@@ -53,43 +52,6 @@ SAMPLE = [
         vac_flu_yes=1,
     ),
 ]
-
-Connection = AbstractAsyncContextManager[AsyncSurrealConnection]
-
-
-def _data_connection(settings: Settings, user: str, password: str) -> Connection:
-    return open_connection(
-        settings.surreal_url,
-        auth={
-            "namespace": settings.surreal_namespace,
-            "database": settings.surreal_data_database,
-            "username": user,
-            "password": password,
-        },
-        namespace=settings.surreal_namespace,
-        database=settings.surreal_data_database,
-    )
-
-
-def writer_connection(settings: Settings) -> Connection:
-    return _data_connection(
-        settings, settings.surreal_ingest_user, settings.surreal_ingest_password.get_secret_value()
-    )
-
-
-def reader_connection(settings: Settings) -> Connection:
-    return _data_connection(
-        settings, settings.surreal_api_ro_user, settings.surreal_api_ro_password.get_secret_value()
-    )
-
-
-def root_connection(settings: Settings) -> Connection:
-    return open_connection(
-        settings.surreal_url,
-        auth={"username": "root", "password": settings.surreal_root_password.get_secret_value()},
-        namespace=settings.surreal_namespace,
-        database=settings.surreal_data_database,
-    )
 
 
 async def test_upsert_is_idempotent_and_reader_sees_the_rows(settings: Settings) -> None:

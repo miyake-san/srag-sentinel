@@ -21,7 +21,7 @@ DEFINE INDEX OVERWRITE uf_day ON srag_daily FIELDS uf, day UNIQUE;
 DEFINE INDEX OVERWRITE day_idx ON srag_daily FIELDS day;
 
 DEFINE TABLE OVERWRITE ingest_manifest SCHEMAFULL;
-DEFINE FIELD OVERWRITE source_url ON ingest_manifest TYPE string;
+DEFINE FIELD OVERWRITE source_urls ON ingest_manifest TYPE array<string>;
 DEFINE FIELD OVERWRITE retrieved_at ON ingest_manifest TYPE datetime;
 DEFINE FIELD OVERWRITE rows_read ON ingest_manifest TYPE int;
 DEFINE FIELD OVERWRITE rows_kept ON ingest_manifest TYPE int;

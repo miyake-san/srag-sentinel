@@ -1,7 +1,7 @@
 """Ports (interfaces) the rest of the application depends on."""
 
 from datetime import date
-from typing import Protocol
+from typing import Any, Protocol
 
 from srag_sentinel.domain.models import DailyCounters
 
@@ -23,4 +23,8 @@ class CountersWriter(Protocol):
 
     async def upsert_daily(self, rows: list[DailyCounters]) -> None:
         """Insert or replace daily counters (idempotent, keyed by UF and day)."""
+        ...
+
+    async def record_manifest(self, manifest: dict[str, Any]) -> None:
+        """Store the manifest describing an ingestion run."""
         ...

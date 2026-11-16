@@ -5,6 +5,8 @@ description = "Agentic AI system that generates SRAG outbreak reports from OpenD
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "httpx>=0.28.1",
+    "polars>=2.1.0",
     "pydantic>=2.14",
     "pydantic-settings>=2.16",
     "surrealdb>=3.0.0",
@@ -24,6 +26,7 @@ dev = [
     "pytest>=9.2",
     "pytest-asyncio>=1.0",
     "pytest-cov>=7.0",
+    "respx>=0.23.1",
     "ruff>=0.17",
 ]
 
