@@ -43,9 +43,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   small→large cascade, error/warning validators, judge port, per-tier call budget and audit events).
 - **News**: Google News RSS (defusedxml, no redirects) and GDELT (6 s limiter) providers, a validated query model
   without provider operators, a fallback chain with deduplication and a TTL cache; verified against the real feed.
-- **Guardrails**: G1 request validation (specific rule ids, never echoes input) and G4 run budget (calls per tier,
-  news queries, articles, deadline).
-- 244 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), 98% coverage,
+- **Guardrails**: G1 request validation (specific rule ids, never echoes input), G4 run budget (calls per tier,
+  news queries, articles, deadline) and **G2 for news**: hidden-Unicode sanitising, instruction-injection detection
+  (Portuguese and English), source trust by domain suffix, topic relevance, date window, an escaped
+  `<untrusted_news>` wrapper and a PII scrubber (CPF/CNPJ with check digits, e-mail, Brazilian phones).
+- **Audit trail**: hash-chained, append-only `audit` database (record-access writer, `READONLY` fields enforced even
+  for administrators, unique `seq`), a per-run recorder with router and guardrail adapters, and
+  `srag-sentinel audit verify|export` with an external head anchor to detect tail truncation.
+- 337 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), 97% coverage,
   ruff and strict mypy clean.
 
 ### Changed

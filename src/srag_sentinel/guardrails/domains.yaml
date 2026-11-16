@@ -1,0 +1,23 @@
+# Source trust for news (G2). A domain matches by suffix (the most specific entry wins).
+# Scores are 0..1; articles below `min_trust` are dropped. Unlisted domains get `unlisted_trust`.
+min_trust: 0.5
+unlisted_trust: 0.3
+domains:
+  # official and public-health institutions
+  gov.br: 1.0
+  fiocruz.br: 1.0
+  paho.org: 1.0
+  who.int: 1.0
+  # wire services and large newsrooms
+  ebc.com.br: 0.9
+  g1.globo.com: 0.8
+  oglobo.globo.com: 0.8
+  globo.com: 0.7
+  cnnbrasil.com.br: 0.8
+  poder360.com.br: 0.8
+  folha.uol.com.br: 0.8
+  estadao.com.br: 0.8
+  bbc.com: 0.8
+  band.com.br: 0.7
+  correiobraziliense.com.br: 0.7
+  uol.com.br: 0.6

@@ -89,7 +89,7 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
   - Aceite: `AuditLog` com eventos `audit.v1`, `seq` único, `prev_hash/hash`, escritor com credencial de mínimo privilégio, falha ⇒ aborta; `audit verify` e `audit export` (JSONL).
   - Verifica: integração — adulteração (editar/remover/reordenar) detectada; credencial da API não faz UPDATE/DELETE; nenhum evento com PII/conteúdo por padrão.
   - Arquivos: `governance/{audit,chain,verify}.py`, `db/schema/audit.surql`, `tests/integration/test_audit.py`. Dep.: T0c, T3
-- [ ] **T10 — Guardrail G2 (notícias não confiáveis) + scrubber de PII** (M) [04]
+- [x] **T10 — Guardrail G2 (notícias não confiáveis) + scrubber de PII** (M) [04] — ✔ 21 injeções PT/EN (inclui Unicode oculto e tags de papel), CPF/CNPJ com dígito verificador, e-mail e telefone, confiança por sufixo de domínio, relevância, janela de datas, ordenação e embrulho `<untrusted_news>` escapado; cobertura 100 % de `guardrails/`
   - Aceite: allowlist/score de domínios, filtros de idioma/data/relevância, dedupe, sanitização (markup, Unicode oculto), detector de instruções, scrubber CPF/CNPJ/e-mail/telefone, empacotamento `<untrusted_news>`.
   - Verifica: corpus ≥ 15 injeções + ≥ 10 PII, todos neutralizados/ bloqueados.
   - Arquivos: `guardrails/{news,pii}.py`, `config/domains.yaml`, `tests/guardrails/test_news_pii.py`. Dep.: T7, T8
