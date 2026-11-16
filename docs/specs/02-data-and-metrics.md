@@ -43,6 +43,7 @@ Totais nacionais (`BR`) são somas por `day` em tempo de consulta (as taxas são
 | Banco | Conteúdo | Usuários |
 |---|---|---|
 | `data` | `srag_daily`, `ingest_manifest` | `ingest` (escrita, só no job), `api_ro` (somente leitura) |
+| `kg` | grafo de conhecimento: nós, arestas, índices FULLTEXT (e HNSW opcional) — [07](07-graphrag-knowledge-graph.md) | `kg_writer` (escrita, só no processo de construção), `api_ro` (somente leitura) |
 | `audit` | `audit_event` (ver [05](05-governance-audit.md)) | `audit_writer` (append-only), `audit_reader` |
 | `app` | `report`, `news_cache` (TTL) | `api_rw` |
 

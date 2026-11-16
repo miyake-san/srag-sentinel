@@ -26,7 +26,7 @@ Tabela `audit_event` no **banco `audit` do SurrealDB** (namespace `srag`), **app
   "trace_id": "…",
   "actor": "agent|tool|guardrail|system|user",
   "node": "synthesize",
-  "event": "llm_call|tool_call|guardrail_verdict|decision|degradation|run_start|run_end",
+  "event": "llm_call|tool_call|guardrail_verdict|decision|degradation|router_decision|judge_verdict|task_exhausted|kg_write|kg_quarantine|run_start|run_end",
   "inputs_hash": "sha256:…",
   "outputs_hash": "sha256:…",
   "details": { "model": "…", "prompt_id": "synthesize@3", "prompt_sha256": "…",
@@ -48,6 +48,7 @@ Tabela `audit_event` no **banco `audit` do SurrealDB** (namespace `srag`), **app
 2. Cada **chamada de tool**: nome, args (JSON canônico), `outputs_hash`, duração, status.
 3. Cada **chamada de LLM**: provedor/modelo/versão, `prompt_id@version` + hash, parâmetros (temperatura 0), tokens, `inputs_hash`/`outputs_hash`; conteúdo só com `AUDIT_STORE_CONTENT=true`.
 4. Cada **veredito de guardrail**: camada, `rule_id`, ação, motivo (sem dado sensível).
+4a. Cada **decisão do router** (`router_decision`: tarefa, tier, tentativa, motivo de escalada), **veredito do juiz** (`judge_verdict`: rubrica@versão, nota, aprovado, issues), **tarefa esgotada** (`task_exhausted`: política aplicada) e **escrita/quarentena no grafo** (`kg_write`, `kg_quarantine`: ids, tipo, motivo; sem texto) — [07](07-graphrag-knowledge-graph.md), [08](08-llm-router-judge.md).
 5. Cada **decisão do agente** (registro de decisão explícito, `event="decision"`): ex. queries de notícia escolhidas e justificativa curta estruturada, artigos aceitos/rejeitados (id, domínio, motivo), retry de narrativa, degradações.
 6. `run_end`: hash do `report.json` e do HTML, estado (`ok|degraded|failed`), `degradations`.
 

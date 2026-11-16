@@ -10,7 +10,8 @@ Construir uma PoC (Indicium HealthCare Inc.) de um **agente de IA generativa** q
 
 1. **Métricas determinísticas** calculadas sobre o banco SRAG do Open DATASUS (via ferramenta de consulta);
 2. **Contexto de notícias em tempo real** (via ferramenta de busca de notícias) para embasar e explicar o cenário;
-3. **Narrativa gerada por LLM**, estritamente ancorada nas métricas e nas notícias recuperadas.
+3. **Narrativa gerada por LLM**, estritamente ancorada nas métricas e nas evidências recuperadas.
+4. **GraphRAG sobre um grafo de conhecimento no SurrealDB** (UFs, regiões, patógenos, artigos, afirmações, snapshots das métricas), cujas tarefas "baratas" rodam em **LLMs pequenos** roteados por um **LLM Router + LLM Judge** ([07](docs/specs/07-graphrag-knowledge-graph.md), [08](docs/specs/08-llm-router-judge.md)).
 
 **Usuário:** profissional de vigilância/gestão em saúde que quer entender severidade e avanço de surtos.
 **Entrega do desafio:** repositório público, README com toda a documentação e um **PDF com o diagrama conceitual** (Orquestrador, Tools, LLM, banco de dados, fontes de notícias).
@@ -19,7 +20,7 @@ Construir uma PoC (Indicium HealthCare Inc.) de um **agente de IA generativa** q
 
 | Critério | Spec |
 |---|---|
-| Escolha da arquitetura | [01-architecture](docs/specs/01-architecture.md), [03-agent-and-tools](docs/specs/03-agent-and-tools.md) |
+| Escolha da arquitetura | [01-architecture](docs/specs/01-architecture.md), [03-agent-and-tools](docs/specs/03-agent-and-tools.md), [07-graphrag](docs/specs/07-graphrag-knowledge-graph.md), [08-router-judge](docs/specs/08-llm-router-judge.md), [diagramas Mermaid](docs/architecture/architecture.md) |
 | Governança e transparência (auditoria, registro de decisões) | [05-governance-audit](docs/specs/05-governance-audit.md) |
 | Guardrails | [04-guardrails-security](docs/specs/04-guardrails-security.md) |
 | Tratamento de dados sensíveis | [04-guardrails-security](docs/specs/04-guardrails-security.md) §PII, [02-data-and-metrics](docs/specs/02-data-and-metrics.md) §Minimização |
@@ -42,6 +43,8 @@ Construir uma PoC (Indicium HealthCare Inc.) de um **agente de IA generativa** q
 8. **Auditoria** é uma trilha append-only com cadeia de hash armazenada no **banco `audit` do SurrealDB** (com exportação JSONL para arquivamento), separada da telemetria OTel; ver [05](docs/specs/05-governance-audit.md).
 9. **Skills do repositório** (`.claude/skills/`): skills oficiais de terceiros (SurrealDB, LangChain, Astral, OpenTelemetry) copiadas com licença e proveniência, mais skills próprias por stack com referências verificadas — ver [`.claude/skills/README.md`](.claude/skills/README.md).
 10. **Python × SDK SurrealDB:** SDK 3.0.0 (wheel puro, suporte declarado até 3.14) instala e importa em Python 3.14 (T0a ✔).
+11. **GraphRAG leve e grafo de conhecimento no SurrealDB** (banco lógico `kg`; [ADR 0016](docs/adr/0016-graphrag-on-surrealdb.md), [0017](docs/adr/0017-knowledge-graph-model.md)): ontologia fechada, recuperação híbrida **BM25 + travessia de arestas** + resumos regionais; **vetores/HNSW opcionais** (flag, exigem provedor de embeddings). Nenhuma consulta é gerada por LLM.
+12. **LLM Router + Judge** ([ADR 0018](docs/adr/0018-llm-router-and-judge.md)): tabela estática tarefa → camadas (`small → large`) com **validadores determinísticos primeiro** e juiz LLM só em casos ambíguos; sem dependência nova; a síntese final fica sempre no tier `large`.
 
 > ⚠️ **Limitação dos dados que afeta duas métricas — aproximações aceitas pelo usuário** (detalhe em [02](docs/specs/02-data-and-metrics.md)): o dataset não traz leitos nem população. Portanto **"taxa de ocupação de UTI"** será a *proporção de casos hospitalizados que usaram UTI* e **"taxa de vacinação da população"** será a *proporção de casos SRAG vacinados* (COVID e influenza). Ambas são rotuladas como *proxy* no relatório. Ocupação real e cobertura populacional exigiriam fontes externas (CNES/ocupação hospitalar, SI-PNI + IBGE) — fora do escopo, listadas como *Ask first*.
 
@@ -59,6 +62,8 @@ Construir uma PoC (Indicium HealthCare Inc.) de um **agente de IA generativa** q
 | Ingestão | Polars (leitura de Parquet e agregação diária) | latest |
 | Relatório | matplotlib (SVG estático), Jinja2, WeasyPrint (PDF) | WeasyPrint 70.x |
 | Notícias | httpx + `defusedxml` (RSS do Google News), GDELT DOC 2.0 | latest |
+| GraphRAG / KG | SurrealDB: arestas (`RELATE`), `FULLTEXT` BM25 pt-BR, HNSW opcional; seeds YAML (`pyyaml`, já transitiva) | server 4.0.1 |
+| LLM Router / Judge | código próprio sobre a fábrica de provedores; política em YAML validada por Pydantic | sem dependência nova |
 | Observabilidade | opentelemetry-sdk + OTLP exporter | 1.45.x |
 | Qualidade | ruff, mypy (strict), pytest, pytest-cov, hypothesis | latest |
 | Container | Docker, Compose v2; imagem `python:3.14-slim` multi-stage | — |
@@ -113,6 +118,8 @@ srag-sentinel/
 │   ├── data/                    # ingestão (Parquet -> agregados) e repositório SurrealDB (porta + adaptador)
 │   ├── news/                    # NewsProvider (porta) + google_news_rss/gdelt/tavily (adaptadores) + cadeia
 │   ├── llm/                     # fábrica de provedores (anthropic/google/nvidia/openrouter), prompts versionados
+│   │   └── router/              # policy.yaml, cascata, validadores, juiz (spec 08)
+│   ├── kg/                      # seeds, esquema, construção (build_kg) e recuperação (GraphRAG) — spec 07
 │   ├── agent/                   # grafo LangGraph, estado, nós, tools
 │   ├── guardrails/              # entrada, notícias, saída, orçamento
 │   ├── governance/              # trilha de auditoria (hash chain), registro de decisões
@@ -176,7 +183,8 @@ Metas: cobertura ≥ 85 % (≥ 95 % em `domain/` e `guardrails/`); nenhum teste 
 - Rodar lint, tipos e testes antes de commitar; atualizar spec/ADR quando uma decisão mudar.
 - Calcular métricas em código determinístico; o LLM nunca calcula nem inventa números.
 - Registrar toda decisão do agente na trilha de auditoria e em spans OTel.
-- Tratar conteúdo de notícia como **dado não confiável** (nunca como instrução).
+- Tratar conteúdo de notícia como **dado não confiável** (nunca como instrução); só entra no grafo o que passou por G2, validadores e (quando exigido) juiz.
+- Números do relatório vêm **só das métricas**; afirmações do KG com números são citadas como "segundo {fonte}", nunca promovidas a métrica.
 - Rotular métricas *proxy* e dados incompletos no relatório.
 
 **Perguntar antes**
@@ -197,7 +205,9 @@ Metas: cobertura ≥ 85 % (≥ 95 % em `domain/` e `guardrails/`); nenhum teste 
 1. `docker compose up --build` num clone limpo + `.env` com uma chave de LLM (de qualquer um dos 4 provedores) entrega um relatório válido via `POST /v1/reports` em ≤ 90 s (p95, excluindo ingestão).
 2. O relatório, em **HTML, JSON e PDF** (mesmo conteúdo e mesmos hashes de proveniência), contém as **4 métricas** (valor, numerador/denominador, janela, rótulo proxy quando aplicável) e os **2 gráficos** (diário 30 dias; mensal 12 meses), com avisos de maturidade dos dados.
 2a. Os 4 provedores de LLM (Anthropic, Gemini, NVIDIA NIM, OpenRouter) passam no mesmo teste de conformidade (saída estruturada `Narrative`); trocar de provedor exige apenas variáveis de ambiente.
-2b. Os dados vivem no SurrealDB (`data`, `audit`, `app`); o usuário de leitura da API não consegue escrever em `data`/`audit` (verificado por teste).
+2b. Os dados vivem no SurrealDB (`data`, `kg`, `audit`, `app`); o usuário de leitura da API não consegue escrever em `data`/`kg`/`audit` (verificado por teste).
+2c. O relatório cita ≥ 1 `evidence_id` recuperado pelo GraphRAG, com `graph_path` e proveniência (quem extraiu/julgou), quando houver notícias relevantes; com o KG desligado, o sistema segue com notícias planas.
+2d. Todas as tarefas de GraphRAG passam pelo router; cada decisão de roteamento/juiz está na auditoria e no trace; a concordância juiz × humano nas fixtures atinge a meta (κ ≥ 0,6).
 3. A narrativa cita ≥ 1 notícia recuperada com URL/fonte/data; **0 números não rastreáveis** às métricas (verificado automaticamente).
 4. Um trace OTel único por relatório mostra spans de cada nó/tool/chamada LLM no Jaeger; métricas de custo/latência/guardrails visíveis no Grafana.
 5. Cada execução gera registro de auditoria encadeado; `srag-sentinel audit verify` detecta adulteração em teste.
@@ -220,6 +230,10 @@ Metas: cobertura ≥ 85 % (≥ 95 % em `domain/` e `guardrails/`); nenhum teste 
 | 6 | Relatório também em **PDF** (além de HTML e JSON) |
 | 7 | Banco de dados: **SurrealDB** (skills oficiais do SurrealDB incorporadas ao repo) |
 | 8 | **Skills por stack** no repo; onde não há skill pronta, skill própria com referências pesquisadas |
+| 9 | **GraphRAG + grafo de conhecimento** no SurrealDB (specs 07, ADRs 0016/0017) — o banco serve também ao GraphRAG |
+| 10 | **LLM Router + Judge** para rotear LLMs pequenos nas tarefas de GraphRAG; forma mais simples: tabela estática + cascata + validadores primeiro (spec 08, ADR 0018) |
+| 11 | Diagrama de arquitetura em **Mermaid** (`docs/architecture/architecture.md`); o PDF entregável é gerado dele |
+| 12 | Correção da M1: `settle_days=3` e ingestão exige ≥ 2 arquivos anuais (ADR 0015) |
 
 **Em aberto (resolvidas na tarefa 0 — spike técnico)**
 
@@ -239,4 +253,7 @@ Metas: cobertura ≥ 85 % (≥ 95 % em `domain/` e `guardrails/`); nenhum teste 
 | 04 | [guardrails-security](docs/specs/04-guardrails-security.md) | guardrails por camada, PII, ameaças |
 | 05 | [governance-audit](docs/specs/05-governance-audit.md) | trilha de auditoria, registro de decisões, reprodutibilidade |
 | 06 | [observability-deployment](docs/specs/06-observability-deployment.md) | OTel, Compose, Dockerfile, CI |
+| 07 | [graphrag-knowledge-graph](docs/specs/07-graphrag-knowledge-graph.md) | grafo de conhecimento no SurrealDB, construção, recuperação híbrida, segurança, avaliação |
+| 08 | [llm-router-judge](docs/specs/08-llm-router-judge.md) | tiers small/large, política de roteamento, cascata, juiz, auditoria |
+| — | [architecture.md](docs/architecture/architecture.md) | diagramas Mermaid (contexto, fluxo, router/judge, KG, ingestão, implantação) |
 | — | [`.claude/skills/README.md`](.claude/skills/README.md) | skills do projeto: origem, licença, o que foi (e não foi) incorporado |

@@ -13,6 +13,8 @@ Parte de [SPEC.md](../../SPEC.md). Arquitetura em [01](01-architecture.md).
 | `metrics` | `MetricsPayload` | fetch_metrics |
 | `news_queries` | `list[NewsQuery]` (≤ 3) | plan_news_research |
 | `articles` | `list[Article]` (≤ N, ids `A1..An`) | collect_news |
+| `kg_stats` | `KgBuildStats` (nós/arestas gravados, quarentena) | build_kg |
+| `evidence` | `EvidencePack` (itens com `evidence_id`, `graph_path`, proveniência) | retrieve_context |
 | `narrative` | `Narrative \| None` | synthesize |
 | `verification` | `VerificationResult` | verify_narrative |
 | `report` | `ReportArtifacts` | render_report |
@@ -27,7 +29,9 @@ Parte de [SPEC.md](../../SPEC.md). Arquitetura em [01](01-architecture.md).
 | `fetch_metrics` | tool | request → `MetricsPayload` | erro interno 5xx (sem dados = não há relatório) |
 | `plan_news_research` | **LLM #1**, sem tools, saída estruturada | payload agregado → `news_queries` | fallback: queries default por template |
 | `collect_news` | tool + G2 | queries → `articles` | `NEWS_UNAVAILABLE` → segue sem notícias |
-| `synthesize` | **LLM #2**, sem tools, saída estruturada | payload + artigos delimitados → `Narrative` | `NARRATIVE_REJECTED` após retry → degradado |
+| `build_kg` | código + **tarefas `small` via router/juiz** ([08](08-llm-router-judge.md)), sem tools | `articles` → nós/arestas no banco `kg` | falha ⇒ `KG_UNAVAILABLE`; itens reprovados → quarentena |
+| `retrieve_context` | tool `search_knowledge_graph` (GraphRAG, [07](07-graphrag-knowledge-graph.md)) | métricas + escopo → `EvidencePack` | falha ⇒ `KG_UNAVAILABLE`, segue com notícias planas |
+| `synthesize` | **LLM #2 (tier `large`)**, sem tools, saída estruturada | payload + `EvidencePack` delimitado → `Narrative` | `NARRATIVE_REJECTED` após retry → degradado |
 | `verify_narrative` | código (G3) | narrative + payload + artigos → `VerificationResult` | 1 retry com feedback (lista de violações) |
 | `render_report` | código | tudo → HTML + JSON + PDF | PDF falha ⇒ `PDF_UNAVAILABLE` (degradação); demais falhas = erro interno |
 | `finalize` | código | sela auditoria, fecha trace | — |
@@ -48,6 +52,7 @@ class Tool(Protocol):
 |---|---|---|---|
 | `get_srag_metrics` | `uf: UF \| "BR"`, `as_of: date`, `window_days: int ∈ [7, 90]` | `MetricsPayload` (M1–M4 + extras, completude, `data_maturity`) | consultas parametrizadas, nunca SQL livre |
 | `get_srag_series` | idem | `daily_30d`, `monthly_12m` (listas de `(data, n)`) | alimenta G-A/G-B |
+| `search_knowledge_graph` | `uf`, `pathogens[]`, `questions[]` (derivadas por código das métricas), `top_k ≤ 20`, `max_hops ≤ 2` | `EvidencePack` | **somente leitura**, templates SurrealQL fixos e parametrizados; nunca consulta gerada por LLM; ver [07 §3.2](07-graphrag-knowledge-graph.md) |
 | `search_news` | `query: str ≤ 120 chars`, `max_results ≤ 10`, `lookback_days ≤ 30` | `list[Article]` (`id`, `title`, `source`, `domain`, `published_at`, `url`, `snippet ≤ 400 chars`) | só metadados + trecho; **não** baixa páginas completas na PoC; cache + retry; allowlist/score de domínio |
 
 `NewsProvider` (porta): `search(query, lookback_days, max_results) -> list[RawArticle]`. Adaptadores: `GoogleNewsRssProvider` (primário), `GdeltProvider` (secundário), `TavilyProvider` (opcional, exige chave), `FakeNewsProvider` (testes). `ChainedNewsProvider` consulta os provedores habilitados (`SRAG_NEWS_PROVIDERS=google_news,gdelt[,tavily]`), une e deduplica; um provedor que falha é registrado como degradação parcial e a cadeia continua.
@@ -81,7 +86,8 @@ class Tool(Protocol):
 class Claim(BaseModel):
     text: str                       # frase em pt-BR
     metric_refs: tuple[str, ...] = ()   # ex.: ("M1", "M2")
-    article_refs: tuple[str, ...] = ()  # ex.: ("A2",)
+    article_refs: tuple[str, ...] = ()  # ex.: ("A2",)  (artigos coletados)
+    evidence_refs: tuple[str, ...] = ()  # ex.: ("E5",)  (EvidencePack do GraphRAG, spec 07)
 
 class Narrative(BaseModel):
     summary: str                    # ≤ 120 palavras

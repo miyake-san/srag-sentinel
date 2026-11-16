@@ -59,6 +59,8 @@ Um **Agente Orquestrador** (LangGraph) coordena três ferramentas — `get_srag_
 | Auditoria | registro append-only encadeado ([05](05-governance-audit.md)) | `governance/` |
 | Relatório | gráficos SVG, HTML Jinja2 com autoescape, JSON | `reporting/` |
 | Observabilidade | provider OTel, métricas customizadas | `observability/` |
+| Grafo de conhecimento (KG) | seeds, esquema, construção (`build_kg`) e recuperação (GraphRAG) no banco `kg` ([07](07-graphrag-knowledge-graph.md)) | `kg/` |
+| LLM Router + Judge | política tarefa → camadas, cascata, validadores, juiz ([08](08-llm-router-judge.md)) | `llm/router/` |
 
 ## 4. Decisões de arquitetura (ADRs a registrar em `docs/adr/`)
 
@@ -75,6 +77,10 @@ Um **Agente Orquestrador** (LangGraph) coordena três ferramentas — `get_srag_
 | 0009 | **OTel Collector como único destino da app** (OTLP) | exportar direto a cada backend | desacopla backends; igual a produção |
 | 0010 | **Gráficos SVG estáticos (matplotlib)** | Plotly/JS | relatório autocontido, sem JS, CSP restritiva |
 | 0011 | **Eixo temporal = `DT_NOTIFIC`** (não início de sintomas) | `DT_SIN_PRI` | evita falsa queda nos últimos dias por atraso de notificação (ver [02](02-data-and-metrics.md) §5) |
+| 0015 | **`settle_days` = 3** e ingestão com ≥ 2 arquivos anuais | usar o último dia bruto; ingestão de 1 arquivo | remove o viés do rabo incompleto na M1 (−15,6 % → −8,8 % nos dados reais); evita sobrescrever dias com contagem parcial ([ADR](../adr/0015-settle-days-and-partial-ingest-guard.md)) |
+| 0016 | **GraphRAG leve no SurrealDB** (BM25 + travessia + resumos regionais; vetores opcionais) | GraphRAG completo (Leiden); RAG vetorial puro; Neo4j | um só banco, auditável, sem dependência de embeddings ([ADR](../adr/0016-graphrag-on-surrealdb.md)) |
+| 0017 | **KG com ontologia fechada**, afirmações como nós, proveniência obrigatória, banco `kg` | esquema aberto gerado por LLM | validável e difícil de envenenar ([ADR](../adr/0017-knowledge-graph-model.md)) |
+| 0018 | **Router estático + cascata + validadores primeiro; juiz LLM só em casos ambíguos** | RouteLLM treinado; roteador por LLM; juiz em tudo; confiança autodeclarada | a forma mais simples, sem dependência nova, auditável ([ADR](../adr/0018-llm-router-and-judge.md)) |
 
 ## 5. Fluxo de dados (execução de um relatório)
 
@@ -82,7 +88,9 @@ Um **Agente Orquestrador** (LangGraph) coordena três ferramentas — `get_srag_
 2. `fetch_metrics`: chama o repositório → `MetricsPayload` (4 métricas, 2 séries, metadados de maturidade/completude).
 3. `plan_news_research` (LLM #1, sem tools): recebe **apenas** o payload agregado e propõe ≤ 3 queries (schema Pydantic); G2-pré valida.
 4. `collect_news`: `search_news` executa as queries; G2 filtra (allowlist/score de domínio, idioma, janela de datas, deduplicação, sanitização anti-injeção, PII scrub) → ≤ N artigos.
-5. `synthesize` (LLM #2, sem tools): recebe payload + artigos **delimitados como dado não confiável**; devolve `Narrative` (schema) com afirmações citando `metric_id`/`article_id`.
+4a. `build_kg` (tarefas `small` via router + validadores + juiz, [07](07-graphrag-knowledge-graph.md)/[08](08-llm-router-judge.md)): liga entidades por dicionário, extrai afirmações, grava nós/arestas com proveniência no banco `kg`; reprovados vão para quarentena.
+4b. `retrieve_context` (GraphRAG): BM25 + expansão no grafo + resumos regionais → `EvidencePack` com `evidence_id` e `graph_path`; se o KG falhar, degrada para notícias planas (`KG_UNAVAILABLE`).
+5. `synthesize` (LLM #2, tier `large`, sem tools): recebe payload + `EvidencePack` **delimitado como dado não confiável**; devolve `Narrative` (schema) com afirmações citando `metric_id`/`evidence_id`.
 6. `verify_narrative` (G3): grounding numérico e de citações, política de conteúdo clínico, PII, tamanho. Falhou → 1 retry com feedback; falhou de novo → relatório degradado.
 7. `render_report`: HTML + JSON + **PDF** (+ hashes de cada artefato; relatório persistido no banco `app`). 8. `finalize`: sela a auditoria (hash do relatório, `prev_hash`).
 
@@ -98,7 +106,7 @@ Um **Agente Orquestrador** (LangGraph) coordena três ferramentas — `get_srag_
 
 ## 7. Diagrama conceitual (entregável PDF)
 
-Fonte versionada em `docs/architecture/architecture.dot` (Graphviz); PDF gerado por `docker compose run --rm diagram` e commitado. Deve mostrar: Orquestrador, Tools (`get_srag_metrics`, `get_srag_series`, `search_news`), LLM (2 estágios), banco (SurrealDB: `data`, `audit`, `app`) com ingestão do Open DATASUS (Parquet → agregados), fontes de notícias, guardrails, auditoria e pipeline OTel (Collector → Jaeger/Prometheus/Grafana).
+**Fonte versionada em Mermaid:** [`docs/architecture/architecture.md`](../architecture/architecture.md) (visão geral, fluxo LangGraph com GraphRAG, cascata router/judge, modelo do KG, ingestão e implantação; renderiza no GitHub). O **PDF entregável** é gerado desse arquivo (`mermaid-cli` em container, `docker compose run --rm diagram`) e commitado em `docs/architecture/architecture.pdf`. Deve mostrar: Orquestrador, Tools (`get_srag_metrics`, `get_srag_series`, `search_news`, `search_knowledge_graph`), LLM Router/Judge e tiers, 4 provedores, banco (SurrealDB: `data`, `kg`, `audit`, `app`) com ingestão do Open DATASUS, fontes de notícias, guardrails, auditoria e pipeline OTel.
 
 ## 8. Riscos
 

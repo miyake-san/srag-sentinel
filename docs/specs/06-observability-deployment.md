@@ -50,6 +50,12 @@ Setup em `observability/setup.py`; atributos de recurso: `service.name=srag-sent
 | `srag.guardrail.verdicts` | contador | `layer`, `rule`, `action` |
 | `srag.news.articles` | histograma | `stage` (`retrieved/accepted`) |
 | `srag.data.freshness_days` | gauge | — |
+| `srag.router.calls` | contador | `task`, `tier`, `outcome` |
+| `srag.router.escalations` | contador | `task` |
+| `srag.judge.verdicts` | contador | `rubric`, `passed` |
+| `srag.router.cost_usd` (estimado) | contador | `tier` |
+| `srag.kg.nodes_written` / `srag.kg.quarantined` | contador | `kind` / `reason` |
+| `srag.kg.retrieval.items` · `srag.kg.retrieval.duration` | histograma | — |
 
 ### Logs
 JSON estruturado (stdlib `logging` + handler OTel), com `trace_id`/`span_id`/`run_id`; **sem PII e sem payloads**; níveis configuráveis.

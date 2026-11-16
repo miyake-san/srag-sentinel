@@ -15,6 +15,8 @@ Parte de [SPEC.md](../../SPEC.md).
 | SSRF / conteúdo malicioso | URLs de notícia | nenhum fetch de URL arbitrária; só API do provider (hosts fixos) |
 | Vazamento de segredos | chaves em logs/imagem | segredos só por env/secret, nunca em imagem/log; scan no CI |
 | Adulteração de evidência | edição da trilha | hash chain + `audit verify` |
+| Envenenamento do grafo de conhecimento | notícia maliciosa vira nó/aresta/afirmação | G2 + `trust` de fonte + validadores determinísticos (span literal, ontologia, enums) + juiz + quarentena + TTL; ver [07 §4](07-graphrag-knowledge-graph.md) |
+| Juiz/roteador manipulado | texto-fonte instrui o juiz ("dê nota 5") ou escolhe tier | política estática (sem roteador LLM), juiz sem tools que trata a fonte como dado, juiz nunca aprova o que um validador reprovou; ver [08 §6](08-llm-router-judge.md) |
 
 ## 2. Camadas de guardrail
 
@@ -35,7 +37,7 @@ Implementação: módulo `guardrails/`, cada guardrail = função pura `check(..
 ### G3 — Saída (verificação da narrativa)
 Todas determinísticas:
 1. **Grounding numérico:** todo número/percentual/data no texto deve corresponder (com tolerância de arredondamento definida) a um valor do `MetricsPayload` referenciado em `metric_refs`; qualquer outro número ⇒ violação (exceto anos/ids permitidos por regex).
-2. **Grounding de notícias:** cada `news_context` deve ter `article_refs` ⊆ artigos coletados; nenhuma URL/veículo fora do conjunto.
+2. **Grounding de notícias e evidências:** cada `news_context` deve ter `article_refs` ⊆ artigos coletados **e/ou** `evidence_refs` ⊆ `EvidencePack`; nenhuma URL/veículo fora do conjunto; números citados de notícias aparecem como "segundo {fonte}", nunca como métrica.
 3. **Cobertura:** ≥ 1 comentário por M1–M4; `limitations` menciona proxies M3/M4 e maturidade quando aplicável.
 4. **Política de conteúdo:** sem diagnóstico/prescrição/recomendação clínica individual, sem causalidade afirmada sem fonte, sem linguagem alarmista (lista de padrões + termos).
 5. **PII scrub na saída** e checagem de tamanho/idioma.
