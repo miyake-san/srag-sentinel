@@ -4,10 +4,13 @@ import re
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _IDENTIFIER = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+
+Provider = Literal["anthropic", "google_genai", "nvidia", "openrouter"]
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5"
 
 
 class Settings(BaseSettings):
@@ -18,6 +21,7 @@ class Settings(BaseSettings):
         env_file=".env",
         extra="ignore",
         frozen=True,
+        populate_by_name=True,
     )
 
     environment: Literal["dev", "test", "prod"] = "dev"
@@ -39,6 +43,29 @@ class Settings(BaseSettings):
     surreal_api_rw_user: str = "api_rw"
     surreal_api_rw_password: SecretStr = SecretStr("")
 
+    # LLM tiers (docs/specs/03 §4 and 08 §2). `large` is the main model; `small` and `judge`
+    # are optional and fall back to `large` when unset.
+    llm_provider: Provider = "anthropic"
+    llm_model: str = DEFAULT_ANTHROPIC_MODEL
+    router_small_provider: Provider | None = None
+    router_small_model: str | None = None
+    router_judge_provider: Provider | None = None
+    router_judge_model: str | None = None
+    nvidia_base_url: str | None = Field(default=None, description="self-hosted NIM endpoint")
+
+    # Provider API keys use each vendor's standard variable name, never the SRAG_ prefix.
+    anthropic_api_key: SecretStr = Field(
+        default=SecretStr(""), validation_alias="ANTHROPIC_API_KEY"
+    )
+    google_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+    )
+    nvidia_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="NVIDIA_API_KEY")
+    openrouter_api_key: SecretStr = Field(
+        default=SecretStr(""), validation_alias="OPENROUTER_API_KEY"
+    )
+
     @field_validator(
         "surreal_namespace",
         "surreal_data_database",
@@ -53,6 +80,17 @@ class Settings(BaseSettings):
         if not _IDENTIFIER.fullmatch(value):
             raise ValueError("must match [a-z][a-z0-9_]{0,31}")
         return value
+
+    @model_validator(mode="after")
+    def _tiers_are_complete(self) -> Settings:
+        """A tier is either fully configured (provider and model) or not at all."""
+        for tier, provider, model in (
+            ("router_small", self.router_small_provider, self.router_small_model),
+            ("router_judge", self.router_judge_provider, self.router_judge_model),
+        ):
+            if (provider is None) != (model is None):
+                raise ValueError(f"{tier}: set both provider and model, or neither")
+        return self
 
 
 @lru_cache
