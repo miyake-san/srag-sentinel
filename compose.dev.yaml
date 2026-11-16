@@ -1,0 +1,6 @@
+# Development override: publish SurrealDB on localhost only (never on all interfaces).
+#   docker compose -f compose.yaml -f compose.dev.yaml up -d surrealdb
+services:
+  surrealdb:
+    ports:
+      - "127.0.0.1:8000:8000"

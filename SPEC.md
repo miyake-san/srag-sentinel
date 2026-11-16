@@ -101,7 +101,7 @@ srag-sentinel/
 ├── pyproject.toml  uv.lock
 ├── Dockerfile  compose.yaml  .env.example
 ├── .claude/skills/              # skills do projeto (vendored + próprias) e README de proveniência
-├── db/schema/                   # *.surql versionados (data, audit, app) + permissões/usuários
+├── compose.yaml  compose.dev.yaml  # stack (hoje só SurrealDB) + override de dev (porta em localhost)
 ├── docs/
 │   ├── specs/                   # specs detalhadas (01..06)
 │   ├── adr/                     # decisões de arquitetura (NNNN-titulo.md)
@@ -109,6 +109,7 @@ srag-sentinel/
 ├── observability/               # otel-collector.yaml, prometheus.yml, grafana provisioning
 ├── src/srag_sentinel/
 │   ├── domain/                  # puro: modelos, definições de métricas, sem I/O
+│   ├── db/                      # cliente SurrealDB, `init` idempotente e schema/*.surql (pacote)
 │   ├── data/                    # ingestão (Parquet -> agregados) e repositório SurrealDB (porta + adaptador)
 │   ├── news/                    # NewsProvider (porta) + google_news_rss/gdelt/tavily (adaptadores) + cadeia
 │   ├── llm/                     # fábrica de provedores (anthropic/google/nvidia/openrouter), prompts versionados

@@ -1,0 +1,22 @@
+# SRAG Sentinel stack. This file currently defines the database only; the application, ingest job
+# and telemetry services are added in later tasks (see tasks/todo.md, T16).
+#
+# Required environment (e.g. from a git-ignored .env): SURREAL_ROOT_PASSWORD.
+services:
+  surrealdb:
+    image: surrealdb/surrealdb:v4.0.1
+    command: ["start", "--bind", "0.0.0.0:8000", "rocksdb:/data/srag.db"]
+    environment:
+      SURREAL_USER: ${SURREAL_ROOT_USER:-root}
+      SURREAL_PASS: ${SURREAL_ROOT_PASSWORD:?set SURREAL_ROOT_PASSWORD}
+    volumes:
+      - surrealdb-data:/data
+    healthcheck:
+      test: ["CMD", "/surreal", "isready", "--endpoint", "http://127.0.0.1:8000"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  surrealdb-data:
