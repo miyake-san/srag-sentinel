@@ -38,7 +38,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   (585,334 rows).
 - **Metric tools and CLI**: `get_srag_metrics` and `get_srag_series` with strict argument validation, and
   `srag-sentinel metrics` printing the metrics and both series.
-- 121 automated tests (unit, property-based and integration against a real SurrealDB), ruff and strict mypy clean.
+- **LLM layer**: a minimal structured-output port, a lazy provider factory for Anthropic (default), Gemini, NVIDIA NIM
+  and OpenRouter with fail-fast validation, a scripted fake model, and the **LLM router** (static `policy.yaml`,
+  small→large cascade, error/warning validators, judge port, per-tier call budget and audit events).
+- **News**: Google News RSS (defusedxml, no redirects) and GDELT (6 s limiter) providers, a validated query model
+  without provider operators, a fallback chain with deduplication and a TTL cache; verified against the real feed.
+- **Guardrails**: G1 request validation (specific rule ids, never echoes input) and G4 run budget (calls per tier,
+  news queries, articles, deadline).
+- 244 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), 98% coverage,
+  ruff and strict mypy clean.
 
 ### Changed
 - Python target is **3.14** rather than 3.15: `zstandard` and `pyyaml` have no cp315 wheels (ADR 0008).
