@@ -24,8 +24,8 @@ VACCINATION_METRICS = ("M4_COVID", "M4_INFLUENZA")
 
 _SEP = re.escape("." + chr(0xA0) + " ")  # thousands separators: dot, no-break space, space
 _NUMBER = re.compile(rf"\d{{1,3}}(?:[{_SEP}]\d{{3}})+(?:,\d+)?|\d+(?:[.,]\d+)?")
-# Disease and pathogen names that contain digits are labels, not quantities.
-_NAMES_WITH_DIGITS = re.compile(r"covid-?19|sars-?cov-?2|\bh\dn\d\b", re.IGNORECASE)
+# Disease, pathogen and outlet names that contain digits are labels, not quantities.
+_NAMES_WITH_DIGITS = re.compile(r"covid-?19|sars-?cov-?2|\bh\dn\d\b|\bg1\b|\br7\b", re.IGNORECASE)
 _METRIC_TOKEN = re.compile(r"\bM\d(?:_[A-Z]+)?\b")
 _URL = re.compile(r"https?://|www\.|\b[\w-]+\.(?:com|gov|org|net|br|io)\b", re.IGNORECASE)
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")

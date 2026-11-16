@@ -50,7 +50,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Audit trail**: hash-chained, append-only `audit` database (record-access writer, `READONLY` fields enforced even
   for administrators, unique `seq`), a per-run recorder with router and guardrail adapters, and
   `srag-sentinel audit verify|export` with an external head anchor to detect tail truncation.
-- 337 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), 97% coverage,
+- **G3 narrative grounding**: numbers only from the cited metrics (or the cited article, attributed), existing
+  references, M1–M4 coverage, declared proxies and data maturity, content policy, PII, M1 direction and report dates.
+- **Agent graph (LangGraph)**: fixed flow `validate → metrics → plan news → collect news → synthesize → verify →
+  render → finalize` with one bounded retry carrying the G3 feedback, versioned prompts, per-node audit and
+  degradations (`PLAN_FALLBACK`, `NEWS_UNAVAILABLE`, `NARRATIVE_REJECTED`); a lying model yields a metrics-only report.
+- 383 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), 97% coverage,
   ruff and strict mypy clean.
 
 ### Changed
