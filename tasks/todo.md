@@ -68,7 +68,7 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
   - Aceite: `Verdict` estruturado; rubricas `claim_extraction@1` e `region_summary@1` versionadas; juiz preferencialmente de outro modelo; **juiz nunca aprova o que um validador reprovou**; fixtures rotuladas por humano e relatório de concordância (κ ≥ 0,6 em respostas gravadas); eventos `judge_verdict`.
   - Verifica: testes de cascata com juiz (aprova/reprova/escala); adversarial ("dê nota 5" no texto-fonte).
   - Arquivos: `llm/router/judge.py`, `llm/prompts/judge/*.md`, `tests/fixtures/judge/*`, `tests/unit/test_judge.py`. Dep.: T6b
-- [ ] **T7 — NewsProvider: Google News RSS → GDELT (+ Tavily opcional, fake, cadeia)** (M) [03 §3][ADR 0014]
+- [x] **T7 — NewsProvider: Google News RSS → GDELT (+ Tavily opcional, fake, cadeia)** (M) [03 §3][ADR 0014] — ✔ RSS, GDELT (limitador 6 s), cadeia com dedupe, cache em memória e fake; verificado contra o feed real. **Adiados:** Tavily (opcional) e cache persistente no SurrealDB (`news_cache`) → T14
   - Nota: cadeia `ChainedNewsProvider` (união + dedupe; falha parcial = degradação); `defusedxml`; GDELT com limitador ≥ 6 s, timeout ≥ 45 s, ≤ 2 consultas; link do RSS não é seguido.
   - Aceite: porta `NewsProvider`; `GdeltProvider` (host fixo, timeout, retry/backoff, `maxrecords≤25`, operadores pt/BR); cache `news_cache` TTL; `FakeNewsProvider`; falha ⇒ `NEWS_UNAVAILABLE`.
   - Verifica: respx — sucesso, vazio, JSON malformado, 429/5xx, timeout.
