@@ -30,7 +30,7 @@ tasks:
     tiers: [small, large]          # cascata: tenta small, escala para large
     output_schema: ClaimDraftList
     validators: [schema, enums, span_in_source, entities_in_ontology, max_items]
-    judge: on_validator_fail        # always | sample:<p> | on_validator_fail | never
+    judge: on_warning               # always | sample:<p> | on_warning | never
     judge_rubric: claim_extraction@1
     judge_min_score: 4              # de 1 a 5, calibrado em fixtures
     on_exhausted: drop_item         # drop_item | low_confidence | fail_closed
@@ -59,6 +59,8 @@ tasks:
 
 Regras: tarefa desconhecida ⇒ erro de configuração (fail-fast); `report.synthesize` é fixada em `large` por regra no código (teste); a política não contém prompts.
 
+**Severidade dos validadores (implementado na T6b).** Cada validador devolve `Issue`s com severidade `error` (falha dura: o juiz **nunca** pode revertê-la e nem é consultado) ou `warning` (caso ambíguo: o juiz decide quando a política é `on_warning`/`always`/`sample`). Política `judge`: `never` (só validadores), `on_warning` (só se houver aviso), `always`, `sample:<p>` (amostragem para monitorar qualidade). Aceite do juiz = `passed` **e** `score ≥ judge_min_score`.
+
 ## 4. Algoritmo (cascata com validação e juiz)
 ```text
 run_task(task, input):
@@ -68,7 +70,8 @@ run_task(task, input):
           audit.router_decision(task, tier, attempt)
           v = validators.run(out, input)          # determinístico
           if v.ok and not judge_required(policy, out): return Accepted(out, tier)
-          if v.ok or policy.judge == on_validator_fail:
+          if v.errors: feedback = v.errors; continue      # juiz não é consultado
+          if judge_required(policy, v.warnings):
               verdict = judge.evaluate(rubric, input, out, v.issues)  # estruturado
               audit.judge_verdict(task, tier, verdict)
               if verdict.passed and verdict.score >= judge_min_score and v.ok: return Accepted(out, tier)

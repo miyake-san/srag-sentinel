@@ -1,0 +1,33 @@
+# Static routing policy (docs/specs/08 §3). Data, not code: tasks map to tiers; the router never
+# decides by itself which model "feels" right. Prompts live in llm/prompts, not here.
+tasks:
+  kg.extract_claims:
+    tiers: [small, large]
+    validators: [schema, enums, span_in_source, entities_in_ontology, max_items]
+    judge: on_warning
+    judge_rubric: claim_extraction@1
+    judge_min_score: 4
+    on_exhausted: drop_item
+  kg.summarize_region:
+    tiers: [small, large]
+    validators: [schema, citations_in_evidence, no_new_numbers]
+    judge: always
+    judge_rubric: region_summary@1
+    judge_min_score: 4
+    on_exhausted: fail_closed
+  news.plan_queries:
+    tiers: [small, large]
+    validators: [schema, query_charset, max_queries]
+    judge: never
+    on_exhausted: template_fallback
+  news.classify_relevance:
+    tiers: [small]
+    validators: [schema, enums]
+    judge: sample:0.1
+    judge_rubric: relevance@1
+    on_exhausted: drop_item
+  report.synthesize:
+    tiers: [large]
+    validators: []
+    judge: never
+    on_exhausted: fail_closed

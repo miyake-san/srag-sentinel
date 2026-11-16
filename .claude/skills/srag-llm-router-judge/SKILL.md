@@ -8,7 +8,7 @@ description: How the srag-sentinel LLM Router and LLM Judge work — a static ta
 Spec: `docs/specs/08-llm-router-judge.md`; ADR 0018 (why this is the simplest approach). Provider setup: skill `srag-llm-providers`.
 
 ## Rules
-- **Policy is data**: `llm/router/policy.yaml` (validated by Pydantic at boot) maps each task id to `tiers`, `validators`, `judge` policy (`always | sample:p | on_validator_fail | never`), `judge_rubric`, `judge_min_score`, `on_exhausted`. Unknown task ⇒ configuration error. `report.synthesize` is pinned to `large` in code (and tested).
+- **Policy is data**: `llm/router/policy.yaml` (validated by Pydantic at boot) maps each task id to `tiers`, `validators`, `judge` policy (`always | sample:p | on_warning | never`; validator issues are `error` = hard fail the judge cannot override, or `warning` = ambiguous, judge decides), `judge_rubric`, `judge_min_score`, `on_exhausted`. Unknown task ⇒ configuration error. `report.synthesize` is pinned to `large` in code (and tested).
 - **Validators first.** Schema, enums, span-in-source, entity-in-ontology, max items, no-new-numbers. A validator failure can never be overridden by the judge.
 - **Judge** = different model than the producer when possible, no tools, `temperature=0`, structured `Verdict` (scores, `passed`, ≤ 3 reasons, `issues` from a closed list). The source text is delimited as data; the judge ignores instructions inside it. Rubrics are versioned files (`claim_extraction@1`, `region_summary@1`).
 - **Cascade with feedback**: on rejection the next tier gets the judge/validator reasons. When tiers are exhausted apply `on_exhausted` (`drop_item | low_confidence | template_fallback | fail_closed`) — never return an unverified output as accepted.

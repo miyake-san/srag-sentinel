@@ -56,11 +56,11 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
 
 ## Fase 2 — Agente, guardrails e relatório
 
-- [ ] **T6 — Fábrica de provedores LLM + fake** (M) [03 §4][ADR 0007]
+- [x] **T6 — Fábrica de provedores LLM + fake** (M) [03 §4][ADR 0007] — ✔ (porta `StructuredModel`, fábrica dos 4 provedores, `ScriptedModel`)
   - Aceite: `build_chat_model` para `anthropic|google_genai|nvidia|openrouter` com import tardio e erro claro; validação de boot (provedor/modelo/chave); `FakeChatModel` determinístico com saídas estruturadas gravadas.
   - Verifica: testes unitários da fábrica (cada provedor com stub, extra ausente, chave ausente); teste `live` de conformidade escrito (skip sem chave).
   - Arquivos: `llm/{factory,fake}.py`, `tests/unit/test_llm_factory.py`, `tests/live/test_conformance.py`. Dep.: T1 (skill `srag-llm-providers`)
-- [ ] **T6b — LLM Router: política estática, tiers e cascata** (M) [08 §2–4][ADR 0018]
+- [x] **T6b — LLM Router: política estática, tiers e cascata** (M) [08 §2–4][ADR 0018] — ✔ (validadores `error`/`warning`, política `on_warning`; juiz como porta — implementação LLM na T6c)
   - Aceite: `policy.yaml` validado por Pydantic (tarefa desconhecida ⇒ erro; `report.synthesize` fixa em `large`); tiers `small`/`large`/`judge` pela fábrica de provedores (sem `small` ⇒ tudo `large`); cascata com validadores determinísticos, feedback na escalada, `max_attempts`, `on_exhausted`; interface de eventos (`router_decision`, `task_exhausted`) para auditoria/OTel; orçamento por tier.
   - Verifica: `FakeModel` roteirizado cobre todos os caminhos; propriedade "resultado aceito ⇒ passou em todos os validadores".
   - Arquivos: `llm/router/{policy,cascade,validators,events}.py`, `llm/router/policy.yaml`, `tests/unit/test_router.py`. Dep.: T6 (skill `srag-llm-router-judge`)
