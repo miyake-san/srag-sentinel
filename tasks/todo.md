@@ -81,7 +81,7 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
   - Aceite: ligação de entidades por dicionário; extração de afirmações pela tarefa `kg.extract_claims` (router + validadores + juiz); upsert idempotente com `produced_by`/`judge`/`expires_at`; reprovados em quarentena; `kg prune` por TTL; eventos `kg_write`/`kg_quarantine` por interface de auditoria.
   - Verifica: corpus rotulado (≈ 30 manchetes) com F1 de entidades ≥ 0,85 e de afirmações ≥ 0,70 (modelo gravado/fake); adversarial (span inventado, injeção) ⇒ 0 nós.
   - Arquivos: `kg/{build,extract,writer,prune}.py`, `tests/fixtures/kg/*`, `tests/…`. Dep.: T6c, T7, T7b, T10
-- [ ] **T8 — Guardrails G1 (entrada) e G4 (orçamento)** (S) [04]
+- [x] **T8 — Guardrails G1 (entrada) e G4 (orçamento)** (S) [04] — ✔ (G1 reutiliza `ScopeArgs`, detalhes nunca ecoam a entrada; G4 com tetos por tier, consultas, artigos e prazo; limite de tokens fica para a configuração dos modelos)
   - Aceite: `ReportRequest` estrito (`extra=forbid`, UF, `as_of`, janela 7–90); `Budget` (chamadas LLM, tokens, queries, artigos, timeout); veredito padronizado `GuardrailVerdict`.
   - Verifica: tabela de casos válidos/ inválidos (incl. payload tipo `BR'; REMOVE …`).
   - Arquivos: `guardrails/{verdict,input,budget}.py`, `tests/guardrails/test_input_budget.py`. Dep.: T1
