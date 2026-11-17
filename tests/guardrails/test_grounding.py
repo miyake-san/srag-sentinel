@@ -115,6 +115,8 @@ def test_a_fully_grounded_narrative_passes_with_a_single_allow_verdict() -> None
         ("queda de 8,8%", [8.8]),
         ("1.234.567 e 1.234,5", [1234567.0, 1234.5]),
         ("M1 e M4_COVID somam 3 casos em 2026-11-12 e 12/11/2026", [3.0]),
+        ("Segundo a Agência Gov (A1) e a CNN Brasil (A2), casos caem; veja E3", []),
+        ("A12 e 12 casos", [12.0]),
     ],
 )
 def test_brazilian_number_parsing(text: str, numbers: list[float]) -> None:
@@ -146,6 +148,26 @@ def test_numbers_must_match_the_metric_the_claim_cites() -> None:
             )
         )
     )
+
+
+def test_inline_article_references_are_not_quantities() -> None:
+    # Seen with a real model: "Segundo a Agência Gov (A1) e a CNN Brasil (A2)".
+    claim = Claim(
+        text="Segundo a Agência Gov (A1), os casos seguem em queda.",
+        article_refs=("A1",),
+    )
+
+    assert check(good(news_context=(claim,))).ok
+
+
+@pytest.mark.parametrize("word", ["proxies", "proxy", "proxys", "aproximações"])
+def test_the_proxy_declaration_accepts_the_plural_and_portuguese_forms(word: str) -> None:
+    limitations = (
+        f"M3 e M4 são {word}, não medem ocupação nem cobertura.",
+        "Defasagem de notificação.",
+    )
+
+    assert check(good(limitations=limitations)).ok
 
 
 def test_rounded_percentages_are_accepted() -> None:

@@ -26,7 +26,9 @@ _SEP = re.escape("." + chr(0xA0) + " ")  # thousands separators: dot, no-break s
 _NUMBER = re.compile(rf"\d{{1,3}}(?:[{_SEP}]\d{{3}})+(?:,\d+)?|\d+(?:[.,]\d+)?")
 # Disease, pathogen and outlet names that contain digits are labels, not quantities.
 _NAMES_WITH_DIGITS = re.compile(r"covid-?19|sars-?cov-?2|\bh\dn\d\b|\bg1\b|\br7\b", re.IGNORECASE)
-_METRIC_TOKEN = re.compile(r"\bM\d(?:_[A-Z]+)?\b")
+# Prompt references (metrics M1, articles A1, evidence E1) are labels, not quantities.
+_METRIC_TOKEN = re.compile(r"\bM\d(?:_[A-Z]+)?\b|\b[AE]\d{1,2}\b")
+_PROXY_WORD = re.compile(r"prox(?:y|ies)|aproxim")
 _URL = re.compile(r"https?://|www\.|\b[\w-]+\.(?:com|gov|org|net|br|io)\b", re.IGNORECASE)
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 _BR_DATE = re.compile(r"\d{1,2}/\d{1,2}/\d{4}")
@@ -275,11 +277,7 @@ class _Checker:
         if not cited & set(VACCINATION_METRICS):
             self.add("G3.coverage", "metric_commentary", "no comment on vaccination (M4)")
         text = " ".join(self.narrative.limitations).lower()
-        if (
-            any(m.is_proxy for m in self.payload.metrics)
-            and "proxy" not in text
-            and "aproxim" not in text
-        ):
+        if any(m.is_proxy for m in self.payload.metrics) and not _PROXY_WORD.search(text):
             self.add("G3.limitations", "limitations", "proxy metrics must be declared as proxies")
         if self.payload.data_maturity and not re.search(r"defasagem|consolida|notifica", text):
             self.add(
