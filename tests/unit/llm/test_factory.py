@@ -94,6 +94,11 @@ def test_an_empty_model_id_is_rejected() -> None:
         build_structured_model(settings(anthropic_api_key="k"), provider="anthropic", model=" ")
 
 
+def test_the_example_placeholder_is_not_a_model_id() -> None:
+    with pytest.raises(LLMConfigError, match="placeholder"):
+        build_structured_model(settings(groq_api_key="k"), provider="groq", model="<model>")
+
+
 def test_an_unknown_provider_is_rejected() -> None:
     with pytest.raises(LLMConfigError, match="unknown provider"):
         build_structured_model(settings(), provider="nope", model="m")  # type: ignore[arg-type]

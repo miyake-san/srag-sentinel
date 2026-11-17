@@ -128,6 +128,8 @@ def build_structured_model(
         raise LLMConfigError(f"unknown provider {provider!r}; use one of {sorted(PROVIDERS)}")
     if not model.strip():
         raise LLMConfigError(f"{provider}: model id is required")
+    if model.strip().startswith("<"):
+        raise LLMConfigError(f"{provider}: model id is still the example placeholder {model!r}")
     options = _options(settings, provider, spec, model)
 
     try:
