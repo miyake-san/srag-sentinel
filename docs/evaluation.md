@@ -25,6 +25,13 @@ Números produzidos nos testes deste repositório (2026-11-17). Onde o dado depe
 | Latência p95 do relatório | ≤ 90 s | não medida com modelos reais |
 | Qualidade da narrativa | revisão humana | não avaliada |
 
+## Primeira execução real de ponta a ponta (2026-11-17, Groq, escopo BR)
+Dados reais (585.334 linhas ingeridas), notícias reais e modelos reais (grande: `openai/gpt-oss-120b`; pequeno: `openai/gpt-oss-20b`). Resultado: **relatório degradado**, com métricas, gráficos e notícias, mas **sem narrativa** (`NARRATIVE_REJECTED`) e sem PDF (`PDF_UNAVAILABLE`, falta Pango neste Windows; no contêiner o PDF é gerado).
+
+- **Defeito encontrado e corrigido:** a extração de afirmações do grafo escalava respostas inválidas do modelo pequeno para o grande e gastava as 3 chamadas grandes do G4, deixando a síntese sem orçamento (`task_exhausted: budget`). Agora a extração enxerga o orçamento com 2 chamadas grandes reservadas à narrativa e ao seu único retry (`CallBudget.holding_back`).
+- **Com a síntese executando, o G3 rejeitou a narrativa duas vezes:** na 1ª tentativa 4 violações (`numeric_grounding` no resumo, num comentário de métrica e numa nota de contexto; `limitations`); na 2ª, 1 violação (`numeric_grounding` em `news_context[0]`). O sistema **falhou fechado**, como projetado: nenhum texto não verificado foi publicado. O modelo, portanto, ainda cita números que não estão nas métricas nem no artigo citado. A auditoria registra o local, não o texto, então a causa exata do número não está nos logs.
+- **O que isso mede:** o G3 funciona contra um modelo real; a taxa de narrativas aceitas com esse modelo é, por ora, **0 de 1 execução**. Não há medida estatística.
+
 ## Próximos passos
 1. Rodar `tests/live` nos demais provedores e registrar em [`provider-conformance.md`](provider-conformance.md) (Groq já foi medido).
 2. Investigar os 11 falsos rejeites do juiz (prompt ou rubrica) e repetir; revisão humana dos rótulos; medir o F1 de afirmações com o modelo pequeno.

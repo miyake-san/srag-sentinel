@@ -265,6 +265,18 @@ async def test_budget_caps_calls_per_tier() -> None:
     assert sink.events[-1].details["reason"] == "budget"
 
 
+def test_a_held_back_view_shares_the_counters_but_keeps_a_reserve() -> None:
+    budget = CallBudget({"large": 3, "small": 40})
+    view = budget.holding_back({"large": 2})
+
+    assert view.try_consume("large")
+    assert not view.try_consume("large")  # only the reserve is left
+    assert budget.try_consume("large") and budget.try_consume("large")
+    assert not budget.try_consume("large")
+    assert view.try_consume("small")
+    assert budget.used == {"large": 3, "small": 1}
+
+
 def test_synthesis_is_pinned_to_the_large_tier() -> None:
     with pytest.raises(PolicyError, match="large tier only"):
         parse_policy(

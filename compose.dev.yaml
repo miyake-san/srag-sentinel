@@ -1,6 +1,12 @@
 # Development override: publish SurrealDB on localhost only (never on all interfaces).
 #   docker compose -f compose.yaml -f compose.dev.yaml up -d surrealdb
+# The `data` network is internal, and Docker cannot publish a port from an internal-only network,
+# so the database also joins a plain network that exists only for this override.
 services:
   surrealdb:
     ports:
       - "127.0.0.1:8000:8000"
+    networks: [data, devhost]
+
+networks:
+  devhost: {}

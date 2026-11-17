@@ -46,6 +46,8 @@ Node = Callable[[ReportState], Awaitable[Update]]
 
 PLAN_TASK = "news.plan_queries"
 SYNTHESIS_TASK = "report.synthesize"
+# Large calls kept for the narrative and its one G3 retry; the knowledge graph cannot use them.
+SYNTHESIS_LARGE_CALLS = 2
 DEFAULT_QUERIES = (
     "síndrome respiratória aguda grave",
     "influenza gripe casos hospitalizações",
@@ -253,7 +255,9 @@ class _Context:
         if kg is None or metrics is None:
             return {}
         now = self.deps.clock()
-        budget = self.deps.budget.model_calls
+        # Claim extraction escalates failed small-model answers to the large tier; without a
+        # reserve it can spend every large call and leave none for the narrative.
+        budget = self.deps.budget.model_calls.holding_back({"large": SYNTHESIS_LARGE_CALLS})
 
         def on_event(kind: str, details: Mapping[str, Any]) -> None:
             event: EventName = "kg_quarantine" if kind == "kg_quarantine" else "kg_write"

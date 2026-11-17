@@ -70,6 +70,11 @@ class CallBudget:
         self.used[tier] = used + 1
         return True
 
+    def holding_back(self, reserve: Mapping[str, int]) -> CallBudget:
+        """A view that shares the counters but leaves ``reserve`` calls per tier to someone else."""
+        reduced = {tier: max(0, cap - reserve.get(tier, 0)) for tier, cap in self.limits.items()}
+        return CallBudget(reduced, self.used)
+
 
 @dataclass(frozen=True)
 class _Step[P, O: BaseModel]:
