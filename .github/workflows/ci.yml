@@ -41,18 +41,20 @@ jobs:
     runs-on: ubuntu-latest
     env:
       SURREAL_ROOT_PASSWORD: ci-throwaway-root-password
-    services:
-      surrealdb:
-        image: surrealdb/surrealdb:v4.0.1
-        ports: ["8000:8000"]
-        env:
-          SURREAL_USER: root
-          SURREAL_PASS: ci-throwaway-root-password
-        options: >-
-          --health-cmd "/surreal isready --endpoint http://127.0.0.1:8000"
-          --health-interval 5s --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@v4
+      # A service container cannot pass a command, and the image prints its help without one.
+      - name: Start SurrealDB
+        run: |
+          docker run -d --name surrealdb -p 8000:8000 \
+            -e SURREAL_USER=root -e SURREAL_PASS="$SURREAL_ROOT_PASSWORD" \
+            surrealdb/surrealdb:v4.0.1 start --bind 0.0.0.0:8000 memory
+          for _ in $(seq 1 30); do
+            docker exec surrealdb /surreal isready --endpoint http://127.0.0.1:8000 && exit 0
+            sleep 2
+          done
+          docker logs surrealdb
+          exit 1
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
