@@ -14,6 +14,7 @@ O relatório traz 4 métricas (aumento de casos, mortalidade, uso de UTI e vacin
 | [`docs/architecture-overview.md`](docs/architecture-overview.md) | cada componente, onde está no código e os ADRs/specs/testes correspondentes |
 | [`docs/architecture/architecture.pdf`](docs/architecture/architecture.pdf) | diagramas conceituais (PDF entregável) |
 | [`docs/adr/`](docs/adr/) | decisões de arquitetura (ADRs 0001–0019) |
+| [`docs/ontology-and-knowledge-graph.md`](docs/ontology-and-knowledge-graph.md) | ontologia, construção e recuperação do grafo de conhecimento (GraphRAG) |
 | [`docs/surrealdb.md`](docs/surrealdb.md) | guia do SurrealDB: databases e namespaces, recursos, segurança, armadilhas e material de estudo |
 | [`docs/impact.md`](docs/impact.md) | impacto da solução e **como foi medido** (com a revisão crítica da medição) |
 | [`docs/evaluation.md`](docs/evaluation.md) · [`docs/provider-conformance.md`](docs/provider-conformance.md) | o que foi medido ou não; estado dos provedores de LLM |
