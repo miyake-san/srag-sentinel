@@ -36,7 +36,7 @@ Decisões e justificativas: [`docs/adr/`](docs/adr/) (ADRs 0001–0019). Especif
 Requisitos: Docker (Compose v2). Sem LLM real o sistema funciona, mas o texto sai omitido (relatório *degradado*, só métricas e gráficos).
 
 ```bash
-cp env.example .env          # preencha as senhas e, se tiver, ANTHROPIC_API_KEY
+cp env.example .env          # preencha as senhas e as chaves/modelos dos provedores que você usa
 docker compose --profile jobs run --rm init      # bancos, esquema e usuários por papel
 docker compose --profile jobs run --rm ingest    # baixa e agrega o OpenDATASUS (~585 mil linhas)
 docker compose up -d --build                     # SurrealDB, API e telemetria
@@ -80,7 +80,18 @@ O SurrealDB também hospeda um **grafo de conhecimento** (banco `kg`, [ADR 0016]
 
 ## LLM Router e LLM Judge
 
-Tarefas estreitas rodam num modelo **pequeno** e só sobem para o **grande** se não passarem na verificação ([ADR 0018](docs/adr/0018-llm-router-and-judge.md)): política estática em `llm/router/policy.yaml` (tarefa → camadas), validadores antes do juiz, juiz por rubrica versionada que **nunca desfaz um erro de validador**, e `report.synthesize` sempre no modelo grande. Sem camada `small` configurada, tudo roda no grande. Provedores: Anthropic (padrão), Gemini, NVIDIA NIM e OpenRouter ([ADR 0007](docs/adr/0007-llm-port-and-providers.md)); veja [`docs/provider-conformance.md`](docs/provider-conformance.md).
+Tarefas estreitas rodam num modelo **pequeno** e só sobem para o **grande** se não passarem na verificação ([ADR 0018](docs/adr/0018-llm-router-and-judge.md)): política estática em `llm/router/policy.yaml` (tarefa → camadas), validadores antes do juiz, juiz por rubrica versionada que **nunca desfaz um erro de validador**, e `report.synthesize` sempre no modelo grande. Sem camada `small` configurada, tudo roda no grande.
+
+**Provedores e prioridade.** Suportados: OpenRouter, Groq, NVIDIA NIM, Unsloth (e qualquer servidor compatível com a API da OpenAI: vLLM, llama.cpp), Gemini, Ollama e Anthropic ([ADR 0007](docs/adr/0007-llm-port-and-providers.md)). A camada `large` aceita uma **lista de prioridade com failover**: o primeiro provedor utilizável atende e, se falhar (indisponível, limite de taxa, resposta inválida), o próximo é tentado. Provedores sem chave, endpoint ou pacote são ignorados. Ordem padrão sugerida: OpenRouter → Groq → NVIDIA NIM → Unsloth → Gemini → Ollama.
+
+```bash
+SRAG_LLM_PRIORITY="openrouter=<modelo>,groq=<modelo>,nvidia=<modelo>,unsloth=<modelo>,google_genai=<modelo>,ollama=<modelo>"
+GROQ_API_KEY=... OPENROUTER_API_KEY=...        # só as chaves dos provedores que você usa
+SRAG_UNSLOTH_BASE_URL=http://localhost:8888/v1  # o endpoint é obrigatório; a chave, opcional
+SRAG_OLLAMA_BASE_URL=http://localhost:11434     # padrão; use host.docker.internal dentro do Docker
+```
+
+Nenhum id de modelo é fixado em código: informe os que você tem acesso. Se um servidor não aceitar o modo padrão de saída estruturada, ajuste com `SRAG_LLM_STRUCTURED_METHOD` (`function_calling`, `json_schema` ou `json_mode`). Veja [`docs/provider-conformance.md`](docs/provider-conformance.md).
 
 ## Guardrails
 
@@ -135,7 +146,7 @@ uv run ruff check . && uv run ruff format --check . && uv run mypy
 uv run pytest                                   # unitários e guardrails (sem banco nem rede)
 SURREAL_ROOT_PASSWORD=<senha> docker compose -f compose.yaml -f compose.dev.yaml up -d surrealdb
 SURREAL_ROOT_PASSWORD=<senha> uv run pytest -m "integration or not integration"
-ANTHROPIC_API_KEY=... uv run pytest -m live     # conformidade com modelo real
+GROQ_API_KEY=... SRAG_LLM_PRIORITY="groq=<modelo>" uv run --extra groq pytest -m live   # conformidade com modelo real
 ```
 
 Python 3.14 ([ADR 0008](docs/adr/0008-python-version.md)). Skills de apoio por tecnologia em [`.claude/skills/`](.claude/skills/). Histórico em [`CHANGELOG.md`](CHANGELOG.md); plano em [`tasks/`](tasks/).

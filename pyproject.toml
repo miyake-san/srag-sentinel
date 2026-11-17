@@ -39,6 +39,15 @@ nvidia = [
 openrouter = [
     "langchain-openrouter>=0.2.9",
 ]
+groq = [
+    "langchain-groq>=1.2.0",
+]
+unsloth = [
+    "langchain-openai>=1.8.0",
+]
+ollama = [
+    "langchain-ollama>=1.1.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

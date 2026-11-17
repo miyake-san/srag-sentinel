@@ -85,6 +85,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - **Adversarial corpus**: 35 prompt-injection payloads checked against the news filter, the knowledge-graph build and
   the judge prompt, plus hostile request parameters and a false-positive check on real headlines.
 
+- **More LLM providers and priority failover**: Groq, Unsloth (any OpenAI-compatible server) and Ollama join
+  OpenRouter, NVIDIA NIM, Gemini and Anthropic, and the large tier accepts an ordered list
+  (`SRAG_LLM_PRIORITY`, default order OpenRouter, Groq, NVIDIA NIM, Unsloth, Gemini, Ollama) that fails over to the
+  next provider and skips the ones that are not configured. Not yet exercised against a real service.
+
 ### Changed
 - Python target is **3.14** rather than 3.15: `zstandard` and `pyyaml` have no cp315 wheels (ADR 0008).
 - News source is a **chain**: Google News RSS (primary), GDELT (secondary), Tavily (optional) after GDELT proved

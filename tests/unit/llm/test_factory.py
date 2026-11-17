@@ -5,10 +5,13 @@ from pydantic import ValidationError
 
 from srag_sentinel.llm import factory
 from srag_sentinel.llm.factory import (
+    DEFAULT_PRIORITY,
     PROVIDERS,
     LLMConfigError,
     build_large_model,
+    build_prioritized_model,
     build_structured_model,
+    parse_priority,
 )
 from srag_sentinel.settings import Settings
 
@@ -146,3 +149,110 @@ def test_a_fully_configured_small_tier_is_accepted() -> None:
     config = settings(router_small_provider="nvidia", router_small_model="small-model")
 
     assert config.router_small_model == "small-model"
+
+
+@pytest.mark.parametrize(
+    ("provider", "settings_kwargs", "expected"),
+    [
+        ("groq", {"groq_api_key": "g-1"}, {"model": "m", "temperature": 0, "api_key": "g-1"}),
+        (
+            "unsloth",
+            {"unsloth_base_url": "http://localhost:8888/v1"},
+            {
+                "model": "m",
+                "temperature": 0,
+                "api_key": "not-needed",
+                "base_url": "http://localhost:8888/v1",
+            },
+        ),
+        (
+            "unsloth",
+            {"unsloth_base_url": "http://h/v1", "unsloth_api_key": "u-1"},
+            {"model": "m", "temperature": 0, "api_key": "u-1", "base_url": "http://h/v1"},
+        ),
+        ("ollama", {}, {"model": "m", "temperature": 0, "base_url": "http://localhost:11434"}),
+        (
+            "ollama",
+            {"ollama_base_url": "http://host.docker.internal:11434"},
+            {"model": "m", "temperature": 0, "base_url": "http://host.docker.internal:11434"},
+        ),
+    ],
+)
+def test_groq_unsloth_and_ollama_are_built_with_their_own_options(
+    provider: str, settings_kwargs: dict[str, Any], expected: dict[str, Any]
+) -> None:
+    build_structured_model(settings(**settings_kwargs), provider=provider, model="m")  # type: ignore[arg-type]
+
+    assert StubChat.instances[-1].kwargs == expected
+
+
+def test_unsloth_needs_an_endpoint_and_ollama_needs_no_key() -> None:
+    with pytest.raises(LLMConfigError, match="SRAG_UNSLOTH_BASE_URL"):
+        build_structured_model(settings(), provider="unsloth", model="m")
+    build_structured_model(settings(), provider="ollama", model="m")  # no key, no error
+
+
+def test_groq_names_its_missing_key() -> None:
+    with pytest.raises(LLMConfigError, match="GROQ_API_KEY"):
+        build_structured_model(settings(), provider="groq", model="m")
+
+
+def test_the_structured_output_method_can_be_overridden() -> None:
+    config = settings(unsloth_base_url="http://h/v1", llm_structured_method="function_calling")
+
+    model = build_structured_model(config, provider="unsloth", model="m")
+
+    assert model._method == "function_calling"  # type: ignore[attr-defined]
+
+
+def test_the_requested_priority_order_is_the_default() -> None:
+    assert DEFAULT_PRIORITY == (
+        "openrouter",
+        "groq",
+        "nvidia",
+        "unsloth",
+        "google_genai",
+        "ollama",
+    )
+
+
+def test_priority_text_is_parsed_in_order_and_validated() -> None:
+    assert parse_priority("openrouter=a/b, groq=llama ,ollama=qwen") == [
+        ("openrouter", "a/b"),
+        ("groq", "llama"),
+        ("ollama", "qwen"),
+    ]
+    for bad in ("", "groq", "groq=", "nope=m"):
+        with pytest.raises(LLMConfigError):
+            parse_priority(bad)
+
+
+def test_the_chain_skips_unconfigured_providers_and_keeps_the_order() -> None:
+    config = settings(groq_api_key="g", unsloth_base_url="http://h/v1")
+    entries = parse_priority("openrouter=a,groq=b,nvidia=c,unsloth=d,ollama=e")
+
+    chain = build_prioritized_model(config, entries)
+
+    # openrouter and nvidia have no key: skipped; ollama needs none: kept, at the end
+    assert chain.name == "chain:groq:b>unsloth:d>ollama:e"
+
+
+def test_a_chain_with_nothing_usable_explains_why_without_secrets() -> None:
+    entries = parse_priority("openrouter=a,groq=b")
+
+    with pytest.raises(LLMConfigError, match=r"OPENROUTER_API_KEY.*GROQ_API_KEY"):
+        build_prioritized_model(settings(), entries)
+
+
+def test_a_single_usable_provider_is_not_wrapped() -> None:
+    chain = build_prioritized_model(
+        settings(groq_api_key="g"), parse_priority("openrouter=a,groq=b")
+    )
+
+    assert chain.name == "groq:b"
+
+
+def test_the_large_tier_uses_the_priority_chain_when_set() -> None:
+    config = settings(llm_priority="groq=x,ollama=y", groq_api_key="g")
+
+    assert build_large_model(config).name == "chain:groq:x>ollama:y"

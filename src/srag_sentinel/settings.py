@@ -10,7 +10,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 _IDENTIFIER = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 
-Provider = Literal["anthropic", "google_genai", "nvidia", "openrouter"]
+Provider = Literal["anthropic", "google_genai", "nvidia", "openrouter", "groq", "unsloth", "ollama"]
+StructuredMethod = Literal["function_calling", "json_schema", "json_mode"]
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-5-5"
 
 
@@ -70,11 +71,20 @@ class Settings(BaseSettings):
     # are optional and fall back to `large` when unset.
     llm_provider: Provider = "anthropic"
     llm_model: str = DEFAULT_ANTHROPIC_MODEL
+    # Ordered failover for the large tier: "openrouter=<model>,groq=<model>,nvidia=<model>,..."
+    # First usable entry serves; the next is tried when it fails. Overrides llm_provider/model.
+    llm_priority: str | None = None
     router_small_provider: Provider | None = None
     router_small_model: str | None = None
     router_judge_provider: Provider | None = None
     router_judge_model: str | None = None
     nvidia_base_url: str | None = Field(default=None, description="self-hosted NIM endpoint")
+    # Local or self-hosted servers. Unsloth (or vLLM, llama.cpp...) speaks the OpenAI protocol:
+    # set its endpoint, e.g. http://localhost:8888/v1. Ollama defaults to its usual port.
+    unsloth_base_url: str | None = None
+    ollama_base_url: str = "http://localhost:11434"
+    # Override how structured output is requested for every tier (provider default when unset).
+    llm_structured_method: StructuredMethod | None = None
 
     # Provider API keys use each vendor's standard variable name, never the SRAG_ prefix.
     anthropic_api_key: SecretStr = Field(
@@ -88,6 +98,8 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr = Field(
         default=SecretStr(""), validation_alias="OPENROUTER_API_KEY"
     )
+    groq_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="GROQ_API_KEY")
+    unsloth_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="UNSLOTH_API_KEY")
 
     @field_validator(
         "surreal_namespace",
