@@ -2,7 +2,7 @@
 
 import argparse
 import asyncio
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -59,6 +59,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="newest days to leave out when --as-of is not given (notification lag)",
     )
 
+    report = commands.add_parser("report", help="generate a report (HTML, JSON and PDF)")
+    report.add_argument("--uf", default="BR", help="'BR' (default) or a UF code such as SP")
+    report.add_argument("--as-of", type=date.fromisoformat, help="YYYY-MM-DD (default: latest)")
+    report.add_argument("--window-days", type=int, default=30, help="window length, 7-90")
+
+    serve = commands.add_parser("serve", help="run the HTTP API")
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8080)
+
     audit = commands.add_parser("audit", help="audit trail operations")
     audit_commands = audit.add_subparsers(dest="audit_command", required=True)
     verify_cmd = audit_commands.add_parser("verify", help="verify the audit hash chain")
@@ -77,22 +86,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    if args.command == "db" and args.db_command == "init":
-        return _db_init()
-    if args.command == "audit":
-        return _audit(args)
-    if args.command == "ingest":
-        return _ingest(years=args.years, urls=args.url, allow_partial=args.allow_partial)
-    if args.command == "metrics":
-        return _metrics(
+    handlers: dict[str, Callable[[], int]] = {
+        "db": _db_init,
+        "audit": lambda: _audit(args),
+        "serve": lambda: _serve(host=args.host, port=args.port),
+        "report": lambda: _report(uf=args.uf, as_of=args.as_of, window_days=args.window_days),
+        "ingest": lambda: _ingest(
+            years=args.years, urls=args.url, allow_partial=args.allow_partial
+        ),
+        "metrics": lambda: _metrics(
             uf=args.uf,
             as_of=args.as_of,
             window_days=args.window_days,
             settle_days=args.settle_days,
-        )
-
-    parser.print_help()
-    return 0
+        ),
+    }
+    handler = handlers.get(args.command)
+    if handler is None:
+        parser.print_help()
+        return 0
+    return handler()
 
 
 def _audit(args: argparse.Namespace) -> int:
@@ -108,6 +121,44 @@ def _audit(args: argparse.Namespace) -> int:
         return 0
     print(f"AUDIT CHAIN BROKEN at seq {result.failed_seq}: {result.reason}")
     return 1
+
+
+def _serve(*, host: str, port: int) -> int:
+    import uvicorn  # noqa: PLC0415 - only the serve command needs the server
+
+    from srag_sentinel.api.app import create_app  # noqa: PLC0415
+
+    uvicorn.run(create_app(), host=host, port=port, log_config=None)
+    return 0
+
+
+def _report(*, uf: str, as_of: date | None, window_days: int) -> int:
+    from srag_sentinel.llm.factory import LLMConfigError  # noqa: PLC0415
+    from srag_sentinel.service import ReportService  # noqa: PLC0415
+
+    async def _run() -> int:
+        service = ReportService(get_settings())
+        await service.start()
+        try:
+            request: dict[str, object] = {"uf": uf, "window_days": window_days}
+            if as_of is not None:
+                request["as_of"] = as_of.isoformat()
+            result = await service.generate(request)
+        finally:
+            await service.stop()
+        if result.rejected:
+            print(f"error: request rejected by the input guardrail (run {result.run_id})")
+            return 2
+        print(f"run {result.run_id}: {result.status}")
+        for fmt, path in result.files.items():
+            print(f"  {fmt}: {path}")
+        return 0
+
+    try:
+        return asyncio.run(_run())
+    except LLMConfigError as error:
+        print(f"error: {error}")
+        return 2
 
 
 def _metrics(*, uf: str, as_of: date | None, window_days: int, settle_days: int) -> int:

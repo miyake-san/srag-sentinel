@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_FROZEN: "1"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras
+      - run: uv run mypy
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      SURREAL_ROOT_PASSWORD: ci-throwaway-root-password
+    services:
+      surrealdb:
+        image: surrealdb/surrealdb:v4.0.1
+        ports: ["8000:8000"]
+        env:
+          SURREAL_USER: root
+          SURREAL_PASS: ci-throwaway-root-password
+        options: >-
+          --health-cmd "/surreal isready --endpoint http://127.0.0.1:8000"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      # Pango is what WeasyPrint needs: the real-PDF smoke test runs here, not on developer laptops.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core
+      - run: uv sync --all-extras
+      - run: >-
+          uv run pytest -m "integration or not integration" --cov=srag_sentinel
+          --cov-report=term-missing --cov-fail-under=85 -p no:cacheprovider
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v6
+      - run: uv export --frozen --no-dev --no-emit-project -o requirements.txt
+      - run: uvx pip-audit -r requirements.txt --no-deps --disable-pip
+
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Validate the Compose file
+        run: SURREAL_ROOT_PASSWORD=x GRAFANA_ADMIN_PASSWORD=y docker compose config -q
+      - name: Build the runtime image
+        run: docker build --target runtime -t srag-sentinel:ci .
+      - name: Scan the image
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: srag-sentinel:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+      - name: Real PDF smoke test inside the image
+        run: docker run --rm --entrypoint python srag-sentinel:ci -c "import weasyprint; print(weasyprint.HTML(string='<p>ok</p>').write_pdf()[:4])"
+
+  diagram:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Fail if the diagrams changed without a rebuilt PDF
+        run: uv run --no-project python scripts/build_diagram.py --check

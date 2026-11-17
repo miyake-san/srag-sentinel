@@ -1,0 +1,63 @@
+{
+  "uid": "srag-sentinel",
+  "title": "SRAG Sentinel",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {"from": "now-6h", "to": "now"},
+  "tags": ["srag"],
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "Reports (last hour) by status",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (status) (increase(srag_report_total[1h]))", "legendFormat": "{{status}}"}]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Degradations by code",
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (code) (increase(srag_report_degradations_total[15m]))", "legendFormat": "{{code}}"}]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Report duration p50 / p95 (s)",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "histogram_quantile(0.5, sum by (le) (rate(srag_report_duration_seconds_bucket[15m])))", "legendFormat": "p50"},
+        {"expr": "histogram_quantile(0.95, sum by (le) (rate(srag_report_duration_seconds_bucket[15m])))", "legendFormat": "p95"}
+      ]
+    },
+    {
+      "id": 4, "type": "timeseries", "title": "Node latency p95 (s)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, node) (rate(srag_node_duration_seconds_bucket[15m])))", "legendFormat": "{{node}}"}]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Guardrail verdicts by rule and action",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [{"expr": "sum by (rule_id, action) (increase(srag_guardrail_verdicts_total[15m]))", "legendFormat": "{{rule_id}} {{action}}"}]
+    },
+    {
+      "id": 6, "type": "timeseries", "title": "Router calls and escalations",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (task, tier) (increase(srag_router_calls_total[15m]))", "legendFormat": "{{task}} {{tier}}"},
+        {"expr": "sum by (task) (increase(srag_router_escalations_total[15m]))", "legendFormat": "escalation {{task}}"}
+      ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Judge verdicts and knowledge-graph writes",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum by (rubric, passed) (increase(srag_judge_verdicts_total[15m]))", "legendFormat": "judge {{rubric}} passed={{passed}}"},
+        {"expr": "sum by (kind) (increase(srag_kg_nodes_written_total[15m]))", "legendFormat": "kg {{kind}}"},
+        {"expr": "sum by (reason) (increase(srag_kg_quarantined_total[15m]))", "legendFormat": "quarantine {{reason}}"}
+      ]
+    }
+  ]
+}

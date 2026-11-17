@@ -15,6 +15,7 @@ from srag_sentinel.kg.retrieve import Question
 from srag_sentinel.kg.store import KgStore
 from srag_sentinel.llm.router.cascade import Router
 from srag_sentinel.news.models import NewsQuery, NewsResult
+from srag_sentinel.observability.telemetry import Telemetry
 from srag_sentinel.reporting.bundle import ReportBundle
 
 
@@ -66,6 +67,7 @@ class AgentDeps:
     news_policy: NewsPolicy | None = None
     kg: KgConfig | None = None
     """GraphRAG; ``None`` keeps the flat-news flow."""
+    telemetry: Telemetry = field(default_factory=Telemetry)
     bundler: Callable[[ReportDraft], ReportBundle] | None = None
     """Renders HTML/JSON/PDF from the draft; ``None`` leaves the run with the draft only."""
     clock: Callable[[], datetime] = lambda: datetime.now(UTC)

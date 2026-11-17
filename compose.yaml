@@ -1,7 +1,33 @@
-# SRAG Sentinel stack. This file currently defines the database only; the application, ingest job
-# and telemetry services are added in later tasks (see tasks/todo.md, T16).
+# SRAG Sentinel: production-like stack (database, API, jobs, telemetry).
 #
-# Required environment (e.g. from a git-ignored .env): SURREAL_ROOT_PASSWORD.
+#   cp env.example .env   # then fill the secrets (the .env file is git-ignored)
+#   docker compose --profile jobs run --rm init        # create databases, schema and role users
+#   docker compose --profile jobs run --rm ingest      # load OpenDATASUS aggregates
+#   docker compose up -d --build                       # database, API and telemetry
+#
+# Networks: `frontend` publishes the API, `data` is internal (database), `telemetry` carries OTLP.
+# Nothing here holds a secret: values come from the git-ignored .env file.
+
+x-app: &app
+  build:
+    context: .
+    target: runtime
+    args:
+      LLM_EXTRAS: ${LLM_EXTRAS:-}
+  image: srag-sentinel:${SRAG_VERSION:-dev}
+  env_file:
+    - path: ${SRAG_ENV_FILE:-.env}
+      required: false  # secrets can also come from the environment (CI, orchestrator)
+  environment: &app-env
+    SRAG_SURREAL_URL: ws://surrealdb:8000/rpc
+    OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+  read_only: true
+  tmpfs:
+    - /tmp
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+
 services:
   surrealdb:
     image: surrealdb/surrealdb:v4.0.1
@@ -11,6 +37,7 @@ services:
       SURREAL_PASS: ${SURREAL_ROOT_PASSWORD:?set SURREAL_ROOT_PASSWORD}
     volumes:
       - surrealdb-data:/data
+    networks: [data]
     healthcheck:
       test: ["CMD", "/surreal", "isready", "--endpoint", "http://127.0.0.1:8000"]
       interval: 5s
@@ -18,5 +45,94 @@ services:
       retries: 10
     restart: unless-stopped
 
+  app:
+    <<: *app
+    command: ["serve", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - reports:/data/reports
+    networks: [frontend, data, telemetry]
+    depends_on:
+      surrealdb:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    restart: unless-stopped
+
+  init:
+    <<: *app
+    command: ["db", "init"]
+    environment:
+      <<: *app-env
+      SRAG_SURREAL_ROOT_PASSWORD: ${SURREAL_ROOT_PASSWORD:?set SURREAL_ROOT_PASSWORD}
+    networks: [data]
+    profiles: [jobs]
+    depends_on:
+      surrealdb:
+        condition: service_healthy
+
+  ingest:
+    <<: *app
+    command: ["ingest"]
+    networks: [data, frontend]  # reads the public OpenDATASUS bucket
+    profiles: [jobs]
+    depends_on:
+      surrealdb:
+        condition: service_healthy
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.121.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./observability/otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    networks: [telemetry]
+    depends_on: [jaeger]
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/jaeger:2.4.0
+    ports:
+      - "127.0.0.1:16686:16686"
+    networks: [telemetry]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=7d
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    networks: [telemetry]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks: [telemetry]
+    depends_on: [prometheus, jaeger]
+    restart: unless-stopped
+
+networks:
+  frontend: {}
+  data:
+    internal: true
+  telemetry: {}
+
 volumes:
   surrealdb-data:
+  reports:
+  prometheus-data:
+  grafana-data:

@@ -126,27 +126,27 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
 
 ## Fase 3 — Serviço, observabilidade e deployment
 
-- [ ] **T14 — API FastAPI + comando `report`** (M) [03 §6]
+- [x] **T14 — API FastAPI + comando `report`** (M) [03 §6] — ✔ `ReportService` (raiz de composição: cada conexão com o usuário de menor privilégio), rotas `POST /v1/reports`, `GET /v1/reports/{id}?format=`, `GET /v1/audit/{id}`, `/healthz`, `/readyz`, erros RFC 9457 sem eco de entrada nem vazamento, CLI `report` e `serve`. Artefatos em `SRAG_REPORTS_DIR/<run_id>/`. **Adiados:** cache de notícias no SurrealDB e Tavily; persistência dos metadados no banco `app` (hoje só arquivos + auditoria)
   - Aceite: `POST /v1/reports`, `GET /v1/reports/{id}?format=json|html|pdf`, `GET /v1/audit/{id}`, `/healthz`, `/readyz`; lifespan com injeção; erros RFC 9457 com `run_id`/`trace_id`; persistência no banco `app`; CLI `report`/`audit verify`.
   - Verifica: testes com `TestClient` + overrides; 422 para entrada inválida; readiness falha sem banco.
   - Arquivos: `api/{app,routes,errors,deps}.py`, `cli.py`, `tests/integration/test_api.py`. Dep.: T11, T12, T13 (skill `srag-fastapi-pydantic`)
-- [ ] **T15 — Instrumentação OpenTelemetry** (M) [06 §2]
+- [x] **T15 — Instrumentação OpenTelemetry** (M) [06 §2] — ✔ fachada `Telemetry` alimentada pelo `AuditRecorder` (spans `report.run` e `agent.node`, eventos de span e métricas `srag.*` de relatório, nó, guardrail, router, juiz, tools e KG), OTLP/HTTP, logs JSON com `trace_id`, `trace_id` nos erros; teste prova que nenhum atributo carrega conteúdo. **Adiados:** spans GenAI por chamada LLM com tokens/custo (`srag.llm.*`, `srag.router.cost_usd`), `srag.news.articles`, `srag.data.freshness_days`, `srag.kg.retrieval.duration`
   - Aceite: provider OTLP (traces, métricas, logs JSON com `trace_id`); spans por nó/tool/LLM/guardrail/`router.task`/`judge.evaluate`/`kg.*` com atributos GenAI (sem conteúdo); métricas `srag.*` da spec (incluindo `srag.router.*`, `srag.judge.*`, `srag.kg.*`); `run_id` correlacionando auditoria.
   - Verifica: teste com exporter em memória (spans esperados, nenhum atributo com payload/PII).
   - Arquivos: `observability/{setup,metrics,logging}.py`, wrapper em `agent/nodes.py`, `tests/unit/test_otel.py`. Dep.: T14 (skill `otel-python`)
-- [ ] **T16 — Docker e Compose "prod-like"** (M) [06 §1,3]
+- [x] **T16 — Docker e Compose "prod-like"** (M) [06 §1,3] — ✔ Dockerfile multi-stage (usuário 10001, fs somente leitura, libs do Pango, estágio `test`), `compose.yaml` com surrealdb sem porta publicada, app, jobs `init`/`ingest`, collector, jaeger, prometheus, grafana e redes `frontend`/`data` (interna)/`telemetry`; validado de ponta a ponta no Docker (init, ingestão de 585.334 linhas, PDF real, suíte no contêiner)
   - Aceite: Dockerfile multi-stage não-root/read-only com libs do WeasyPrint e `LLM_EXTRAS`; `compose.yaml` com surrealdb (sem porta pública), app, ingest (profile), otel-collector, jaeger, prometheus, grafana; redes `frontend/data/telemetry`; healthchecks; tags fixas; `docker compose config` válido.
   - Verifica: `docker compose up --build` saudável em clone limpo; `db init` + `ingest` + `POST /v1/reports` produzem relatório; trace visível no Jaeger.
   - Arquivos: `Dockerfile`, `compose.yaml`, `.dockerignore`, `observability/{otel-collector.yaml,prometheus.yml}`. Dep.: T14, T15 (skill `srag-docker-observability-stack`)
-- [ ] **T17 — Dashboards e alertas Grafana/Prometheus** (S) [06 §2]
+- [x] **T17 — Dashboards e alertas Grafana/Prometheus** (S) [06 §2] — ✔ datasources e dashboard provisionados, 4 alertas de exemplo. ⚠ painéis ainda não conferidos com dados (captura de tela para o README)
   - Aceite: datasources e dashboards provisionados (volume/degradação, latência por nó, tokens/custo, guardrails, frescor de dados); regras de alerta de exemplo.
   - Verifica: após um relatório, painéis exibem dados (captura de tela no README).
   - Arquivos: `observability/grafana/**`, `observability/alerts.yml`. Dep.: T16
-- [ ] **T18 — CI (GitHub Actions)** (S) [06 §5]
+- [x] **T18 — CI (GitHub Actions)** (S) [06 §5] — ✔ `ci.yml` (lint, types, test com SurrealDB + Pango e cobertura ≥ 85 %, gitleaks/pip-audit, imagem + Trivy + PDF real, checagem do diagrama). ⚠ **nunca executado** (não há remoto); versões das actions não verificadas
   - Aceite: jobs lint, types, test (cobertura ≥ 85 %), security (gitleaks, audit de deps, Trivy), build, e2e (compose + fakes), diagram check.
   - Verifica: workflow verde no PR; falha proposital (ex.: segredo falso) é detectada.
   - Arquivos: `.github/workflows/ci.yml`, `.gitleaks.toml`. Dep.: T16
-- [ ] **T19 — Diagrama conceitual em PDF** (S) [01 §7] — **entregável do desafio**
+- [x] **T19 — Diagrama conceitual em PDF** (S) [01 §7] — **entregável do desafio** — ✔ `docs/architecture/architecture.pdf` (6 diagramas Mermaid, A4 paisagem) gerado por `scripts/build_diagram.py`; `--check` compara o hash das fontes
   - Aceite: fonte em **Mermaid** (`docs/architecture/architecture.md`, já criado) → `docs/architecture/architecture.pdf` (comando `docker compose run --rm diagram` com `mermaid-cli`) mostrando Orquestrador, Tools (incl. `search_knowledge_graph`), LLM Router/Judge e tiers, 4 provedores, SurrealDB (`data`, `kg`, `audit`, `app`), fontes de notícias, guardrails, auditoria e pipeline OTel; PDF commitado. Mermaid-cli roda Chromium em container. **Validado em 2026-11-16:** os 6 diagramas atuais renderizam com `minlag/mermaid-cli` usando um `puppeteer.json` com `executablePath: /usr/lib/chromium/chromium` e `--no-sandbox` (só dentro do container efêmero); fixar a tag da imagem no Compose.
   - Verifica: PDF abre e é legível em A4/paisagem; CI renderiza os diagramas (falha se a sintaxe Mermaid quebrar) e detecta divergência fonte × PDF.
   - Arquivos: `docs/architecture/architecture.{dot,pdf}`, serviço `diagram` no Compose. Dep.: T11

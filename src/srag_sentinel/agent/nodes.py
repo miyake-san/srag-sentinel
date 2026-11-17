@@ -137,7 +137,8 @@ def _audited(deps: AgentDeps, name: str, step: Node) -> Node:
     async def run(state: ReportState) -> Update:
         started = time.monotonic()
         try:
-            update = await step(state)
+            with deps.telemetry.node(name):
+                update = await step(state)
         except Exception:
             deps.recorder.record(
                 actor="agent", node=name, event="decision", details={"status": "error"}

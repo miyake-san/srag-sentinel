@@ -68,6 +68,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   degradation. The report lists the cited evidence with its graph path and who extracted and judged it.
 - **LLM judge**: rubric-based, structured and fail-closed, with Cohen's kappa calibration tooling and a live calibration test.
 - ADR 0019 with the SurrealDB findings for the graph.
+- **Service**: `ReportService` composition root (least-privilege connection per job), FastAPI routes to create and
+  fetch reports (JSON, HTML, PDF) and read a run's audit events, `/healthz` and `/readyz`, RFC 9457 problem documents
+  that never echo input, and the `report` and `serve` commands.
+- **Observability**: OpenTelemetry traces and `srag.*` metrics over OTLP, fed from the audit recorder so no content can
+  leak into attributes, plus JSON logs carrying the trace id.
+- **Deployment**: multi-stage non-root Dockerfile with a read-only filesystem and the WeasyPrint libraries, a Compose
+  stack (SurrealDB without a published port, API, init and ingest jobs, collector, Jaeger, Prometheus, Grafana) on
+  separate networks, provisioned Grafana dashboard, example alerts, GitHub Actions CI and the architecture-diagram PDF.
 - 405 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), ruff and strict
   mypy clean. The real-PDF smoke test is skipped on hosts without the Pango libraries.
 

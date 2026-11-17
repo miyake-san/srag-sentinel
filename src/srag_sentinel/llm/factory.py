@@ -82,7 +82,11 @@ def build_structured_model(
     if provider == "nvidia" and settings.nvidia_base_url:
         options["base_url"] = settings.nvidia_base_url
     chat_model = getattr(module, spec.class_name)(**options)
-    return LangChainStructuredModel(chat_model, name=f"{provider}:{model}")
+    return LangChainStructuredModel(
+        chat_model,
+        name=f"{provider}:{model}",
+        structured_method="json_schema" if provider == "anthropic" else None,
+    )
 
 
 def build_large_model(settings: Settings) -> StructuredModel:

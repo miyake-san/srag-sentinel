@@ -152,6 +152,8 @@ activemq-data/
 # Environments
 .env
 .envrc
+# Generated report artifacts (one folder per run id)
+/reports/
 .venv
 env/
 venv/

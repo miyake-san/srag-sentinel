@@ -2,6 +2,7 @@
 
 import re
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
@@ -49,6 +50,12 @@ class Settings(BaseSettings):
     surreal_audit_writer_password: SecretStr = SecretStr("")
     surreal_audit_reader_user: str = "audit_reader"
     surreal_audit_reader_password: SecretStr = SecretStr("")
+
+    # OTLP/HTTP collector base URL (the standard OpenTelemetry variable); unset = no export.
+    otel_endpoint: str | None = Field(default=None, validation_alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+
+    # Where rendered reports (HTML/JSON/PDF) are kept, one folder per run id.
+    reports_dir: Path = Path("reports")
 
     # Knowledge graph (docs/specs/07): its own database; only `kg_writer` writes, `api_ro` reads.
     surreal_kg_database: str = "kg"

@@ -6,6 +6,7 @@ validate -> fetch_metrics -> plan_news -> collect_news -> build_kg -> retrieve_c
 The only cycle is verify -> synthesize (at most one retry). LLM nodes have no tools.
 """
 
+import time
 from typing import Any
 from uuid import uuid4
 
@@ -65,8 +66,16 @@ async def run_report(
     )
     await deps.recorder.flush()
     app = build_graph(deps)
-    result = await app.ainvoke(
-        ReportState(run_id=run_id, raw_request=raw_request),
-        config={"recursion_limit": RECURSION_LIMIT},
+    started = time.monotonic()
+    with deps.telemetry.span("report.run", **{"srag.run_id": run_id}):
+        result = await app.ainvoke(
+            ReportState(run_id=run_id, raw_request=raw_request),
+            config={"recursion_limit": RECURSION_LIMIT},
+        )
+    state = ReportState.model_validate(result)
+    report = state.report
+    status = "rejected" if state.rejected else (report.status if report else "failed")
+    deps.telemetry.report_finished(
+        status, time.monotonic() - started, report.degradations if report else ()
     )
-    return ReportState.model_validate(result)
+    return state

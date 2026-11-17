@@ -1,0 +1,30 @@
+# Example alerts (docs/specs/06 §2). Metric names are the Prometheus forms of the srag.* instruments.
+groups:
+  - name: srag-sentinel
+    rules:
+      - alert: SragReportsDegraded
+        expr: >
+          sum(increase(srag_report_total{status="degraded"}[15m]))
+          / clamp_min(sum(increase(srag_report_total[15m])), 1) > 0.2
+        for: 5m
+        labels: {severity: warning}
+        annotations:
+          summary: More than 20% of reports in the last 15 minutes were degraded
+      - alert: SragReportSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(srag_report_duration_seconds_bucket[15m]))) > 90
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: p95 report duration is above 90 seconds
+      - alert: SragGuardrailBlocks
+        expr: sum(increase(srag_guardrail_verdicts_total{action="block"}[15m])) > 20
+        for: 5m
+        labels: {severity: info}
+        annotations:
+          summary: Unusual number of guardrail blocks (possible probing)
+      - alert: SragNoReports
+        expr: absent(srag_report_total) or sum(increase(srag_report_total[24h])) == 0
+        for: 1h
+        labels: {severity: info}
+        annotations:
+          summary: No reports generated in the last 24 hours

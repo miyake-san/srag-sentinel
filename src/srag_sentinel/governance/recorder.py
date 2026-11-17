@@ -8,6 +8,7 @@ from srag_sentinel.governance.model import Actor, AuditDraft, AuditEvent, EventN
 from srag_sentinel.governance.store import AuditStore
 from srag_sentinel.guardrails.verdict import GuardrailVerdict
 from srag_sentinel.llm.router.events import RouterEvent
+from srag_sentinel.observability.telemetry import Telemetry
 
 _ROUTER_EVENTS: Mapping[str, EventName] = {
     "router_decision": "router_decision",
@@ -27,9 +28,12 @@ def _scalars(details: Mapping[str, Any]) -> dict[str, Scalar]:
 class AuditRecorder:
     """Collects events for one run. Content is never stored, only hashes and scalars."""
 
-    def __init__(self, run_id: str, store: AuditStore) -> None:
+    def __init__(
+        self, run_id: str, store: AuditStore, *, telemetry: Telemetry | None = None
+    ) -> None:
         self._run_id = run_id
         self._store = store
+        self._telemetry = telemetry
         self._pending: list[AuditDraft] = []
 
     def record(  # noqa: PLR0913 - an audit record has several independent attributes
@@ -43,6 +47,8 @@ class AuditRecorder:
         details: Mapping[str, Any] | None = None,
     ) -> None:
         """Queue one event; ``inputs``/``outputs`` are hashed, never stored."""
+        if self._telemetry is not None:
+            self._telemetry.on_event(actor, node, event, details or {})
         self._pending.append(
             AuditDraft(
                 run_id=self._run_id,
