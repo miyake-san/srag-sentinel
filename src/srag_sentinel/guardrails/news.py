@@ -16,6 +16,7 @@ from importlib.resources import files
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
+from srag_sentinel.guardrails.normalise import compact_hit, variants
 from srag_sentinel.guardrails.pii import scrub
 from srag_sentinel.guardrails.verdict import Action, GuardrailVerdict
 from srag_sentinel.news.models import Article, clip
@@ -141,8 +142,9 @@ def _plain(text: str) -> str:
 
 def injection_rule(text: str) -> bool:
     """Whether ``text`` looks like an instruction aimed at a model rather than news."""
-    plain = _plain(text)
-    return any(pattern.search(plain) for pattern in _INJECTION)
+    return compact_hit(text) or any(
+        pattern.search(form) for form in variants(text) for pattern in _INJECTION
+    )
 
 
 def is_relevant(text: str) -> bool:

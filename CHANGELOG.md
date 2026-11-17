@@ -11,6 +11,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   `dev`; Compose now runs as `prod`), per-key rate limit, concurrency cap, 1 KiB JSON-only body, security headers, CSP
   on the HTML report, counters-only audit route and `srag.api.rejections`. **Breaking for API clients:** send
   `Authorization: Bearer`.
+- **Detector normalisation and wider PII scrubbing** (spec 09 §4): injection rules also run on homoglyph-folded,
+  letter-joined and leetspeak variants plus a compact-phrase check; the scrubber adds card numbers (Luhn), CEP, RG
+  (with the cue) and names after a cue. Base64, French and paraphrase remain undetected by design (ADR 0022).
 - **Security validation** (`docs/security-validation.md`), spec 09 (API perimeter, agent and future chat security) and
   ADRs 0020–0022. Finds that the API has no authentication, rate limit or body cap (not yet implemented), that the
   injection detector is a signal rather than a barrier, and fixes spec 04 drift (7 columns, `env.example`).
@@ -110,6 +113,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   (ADR 0015).
 
 ### Fixed
+- `aquasecurity/trivy-action` bumped from 0.28.0 to 0.35.0 (Dependabot alert, affected versions < 0.35.0).
+- API route tests no longer depend on the developer's `.env` (they build their own settings).
 - The news filter missed 13 of 35 injection payloads (role-play, grade manipulation, requests to leak instructions,
   text addressed to the model); its rules now cover them.
 - The Docker reports volume was owned by root, so the non-root service could not store reports.

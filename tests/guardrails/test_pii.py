@@ -69,3 +69,47 @@ def test_scrubbing_is_idempotent() -> None:
     once = scrub(f"CPF {VALID_CPF} e a@b.com").text
 
     assert scrub(once).text == once
+
+
+@pytest.mark.parametrize(
+    ("text", "label", "secret"),
+    [
+        ("documento RG 12.345.678-9 do paciente", "RG", "12.345.678"),
+        ("RG: 123456789", "RG", "123456789"),
+        ("endereço CEP 01310-100, Paulista", "CEP", "01310-100"),
+        ("cartão 4539 1488 0343 6467 usado", "CARTAO", "4539 1488"),
+        ("cartão 4539-1488-0343-6467", "CARTAO", "0343"),
+        ("o paciente Maria da Silva foi internado", "NOME", "Maria da Silva"),
+        ("Sr. João Pereira Santos relatou", "NOME", "João Pereira"),
+        ("a internada Ana Souza segue estável", "NOME", "Ana Souza"),
+    ],
+)
+def test_extended_pii_is_replaced_by_a_placeholder(text: str, label: str, secret: str) -> None:
+    result = scrub(text)
+
+    assert f"[{label}]" in result.text
+    assert secret not in result.text
+    assert result.counts.get(label, 0) >= 1
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "4539 1488 0343 6468",  # fails Luhn
+        "1111111111111111",
+        "12.345.678-9 sem a pista",  # RG needs its cue
+        "1234567-890",
+        "paciente Covid-19 internado",
+        "paciente SRAG grave",
+        "o paciente chegou ao hospital",  # no capitalised word after the cue
+    ],
+)
+def test_ordinary_text_is_left_alone(text: str) -> None:
+    result = scrub(text)
+
+    assert result.counts == {}
+    assert result.text == text
+
+
+def test_a_bare_name_without_a_cue_is_out_of_reach() -> None:
+    assert scrub("Maria da Silva disse que os casos caíram").redactions == 0

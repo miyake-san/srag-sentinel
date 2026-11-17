@@ -67,5 +67,6 @@ Não há chat. Se for criado (ADR 0021), todos os itens são pré-requisito:
 |---|---|
 | A1–A7 | **implementados** em [`api/perimeter.py`](../../src/srag_sentinel/api/perimeter.py), testados em `tests/unit/api/test_perimeter.py` (ADR 0020). Limites: contadores em memória (um processo); respostas 500 do `ServerErrorMiddleware` ficam fora do middleware e não recebem os cabeçalhos de A5 |
 | A8 | atendido |
-| §4 detecção/PII | não implementado |
+| §4 detecção | **implementado** em [`guardrails/normalise.py`](../../src/srag_sentinel/guardrails/normalise.py): NFKD, dobra de homóglifos cirílicos/gregos, junção de letras isoladas, leetspeak e frases checadas sem espaços; testes em `tests/guardrails/test_detector_normalisation.py`. Base64, francês e paráfrase continuam fora e estão documentados em teste |
+| §4 PII | **implementado** em [`guardrails/pii.py`](../../src/srag_sentinel/guardrails/pii.py): cartão (Luhn), CEP com hífen, RG só com a pista "RG", nome após pista (`paciente`, `Sr.`, `Sra.`, `internado/a`, `vítima`). Nome sem pista fica fora (risco aceito). RG sem dígito verificador nacional, então só com pista |
 | C1–C8 | não aplicável (não há chat) |

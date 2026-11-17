@@ -1,7 +1,8 @@
 """PII scrubber for text that comes from outside (news titles and snippets, model output).
 
-Only patterns that can be validated are redacted: CPF and CNPJ must have correct check digits,
-so ordinary numbers (case counts, years) are left alone.
+Only patterns that can be validated are redacted: CPF, CNPJ and card numbers must pass their check
+digits, an RG needs the "RG" cue, a CEP the dash, and a name a cue such as "paciente" or "Sr.", so
+ordinary numbers (case counts, years) are left alone. A bare name stays out of reach (spec 09 §4).
 """
 
 import re
@@ -11,6 +12,18 @@ from dataclasses import dataclass, field
 
 _CNPJ = re.compile(r"(?<!\d)\d{2}\.?\d{3}\.?\d{3}/?\d{4}-?\d{2}(?!\d)")
 _CPF = re.compile(r"(?<!\d)\d{3}\.?\d{3}\.?\d{3}-?\d{2}(?!\d)")
+# RG has no national check digit, so it is only redacted after the "RG" cue.
+_RG = re.compile(r"(?i:\brg\b)[\s:.nº°-]*\d{1,2}\.?\d{3}\.?\d{3}-?[\dxX]\b")
+_CEP = re.compile(r"(?<![\d-])\d{5}-\d{3}(?![\d-])")
+_CARD = re.compile(r"(?<![\d-])\d(?:[ -]?\d){12,18}(?![\d-])")
+# A name is only recognised after a cue ("paciente", "Sr.", "internada"); a bare one is not.
+_NAME_CUE = (
+    r"(?i:(?:\b(?:paciente(?:\s+de\s+nome)?|senhora?|internad[oa]|v[ií]tima)\b|\bsra?\.)[\s:,]+)"
+)
+_NAME_WORD = r"[A-ZÀ-ÝÇ][a-zà-ÿç']+"
+_NAME = re.compile(rf"({_NAME_CUE})({_NAME_WORD}(?:\s+(?:d[aeo]s?\s+)?{_NAME_WORD}){{0,3}})")
+# Words that follow a cue but are not a person (diseases, places in a headline).
+_NOT_A_NAME = frozenset({"covid", "srag", "influenza", "gripe", "vsr", "sars", "brasil", "uti"})
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
 _PHONES = (
     re.compile(r"(?<!\d)(?:\+?55[\s-]?)?\(?\d{2}\)?[\s-]?9\d{4}[\s-]?\d{4}(?!\d)"),  # mobile
@@ -53,6 +66,21 @@ def valid_cnpj(value: str) -> bool:
     return True
 
 
+def valid_card(value: str) -> bool:
+    """Luhn check for a 13 to 19 digit card number (and reject repeated-digit sequences)."""
+    digits = _digits(value)
+    if not 13 <= len(digits) <= 19 or len(set(digits)) == 1:  # noqa: PLR2004
+        return False
+    total = 0
+    for index, digit in enumerate(reversed(digits)):
+        if index % 2:
+            digit *= 2  # noqa: PLW2901
+            if digit > 9:  # noqa: PLR2004
+                digit -= 9  # noqa: PLW2901
+        total += digit
+    return total % 10 == 0
+
+
 @dataclass(frozen=True)
 class ScrubResult:
     """Text with PII replaced by placeholders, and how many of each kind were found."""
@@ -67,7 +95,7 @@ class ScrubResult:
 
 
 def scrub(text: str) -> ScrubResult:
-    """Redact CPF, CNPJ, e-mail addresses and Brazilian phone numbers."""
+    """Redact card (Luhn), CPF, CNPJ, RG and CEP, names after a cue, e-mail and Brazilian phones."""
     found: Counter[str] = Counter()
 
     def validated(
@@ -81,8 +109,18 @@ def scrub(text: str) -> ScrubResult:
 
         return pattern.sub(replace, current)
 
-    result = validated(_CNPJ, "CNPJ", valid_cnpj, text)
+    def named(match: re.Match[str]) -> str:
+        if match.group(2).split()[0].lower() in _NOT_A_NAME:
+            return match.group(0)
+        found["NOME"] += 1
+        return f"{match.group(1)}[NOME]"
+
+    result = validated(_CARD, "CARTAO", valid_card, text)
+    result = validated(_CNPJ, "CNPJ", valid_cnpj, result)
     result = validated(_CPF, "CPF", valid_cpf, result)
+    result = validated(_RG, "RG", lambda _: True, result)
+    result = validated(_CEP, "CEP", lambda _: True, result)
+    result = _NAME.sub(named, result)
     result, emails = _EMAIL.subn("[EMAIL]", result)
     if emails:
         found["EMAIL"] += emails

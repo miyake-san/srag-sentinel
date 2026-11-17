@@ -11,9 +11,15 @@ from srag_sentinel.api.app import create_app
 from srag_sentinel.governance.chain import seal
 from srag_sentinel.governance.model import GENESIS_HASH, AuditDraft, AuditEvent
 from srag_sentinel.service import ReportNotFoundError, RunResult
+from srag_sentinel.settings import Settings
 from support_report import make_draft, make_narrative
 
 RUN_ID = "11111111-2222-3333-4444-555555555555"
+
+
+def open_app(service: Any) -> Any:
+    """The app in dev mode without keys, whatever the developer's own ``.env`` holds."""
+    return create_app(Settings(_env_file=None, environment="dev"), service=service)  # type: ignore[call-arg]
 
 
 class FakeService:
@@ -69,12 +75,12 @@ def service(tmp_path: Path) -> FakeService:
 
 @pytest.fixture
 def client(service: FakeService):  # type: ignore[no-untyped-def]
-    with TestClient(create_app(service=service), raise_server_exceptions=False) as test_client:
+    with TestClient(open_app(service), raise_server_exceptions=False) as test_client:
         yield test_client
 
 
 def test_lifespan_starts_and_stops_the_service(service: FakeService) -> None:
-    with TestClient(create_app(service=service)):
+    with TestClient(open_app(service)):
         assert service.started and not service.stopped
     assert service.stopped
 
@@ -121,7 +127,7 @@ def test_invalid_requests_are_422_problems_that_do_not_echo_input(
 
 
 def test_a_guardrail_rejection_is_a_422_with_the_run_id(tmp_path: Path) -> None:
-    with TestClient(create_app(service=FakeService(tmp_path, rejected=True))) as client:
+    with TestClient(open_app(FakeService(tmp_path, rejected=True))) as client:
         response = client.post("/v1/reports", json={"uf": "SP"})
 
     assert response.status_code == 422
@@ -157,7 +163,7 @@ def test_unexpected_errors_are_opaque_500_problems(tmp_path: Path) -> None:
         async def generate(self, raw_request: dict[str, Any]) -> RunResult:
             raise RuntimeError("SELECT * FROM secret; password=hunter2")
 
-    with TestClient(create_app(service=Broken(tmp_path)), raise_server_exceptions=False) as client:
+    with TestClient(open_app(Broken(tmp_path)), raise_server_exceptions=False) as client:
         response = client.post("/v1/reports", json={})
 
     assert response.status_code == 500
