@@ -33,6 +33,15 @@ class TaskSpec[P, O: BaseModel]:
 
 
 @dataclass(frozen=True)
+class JudgeInfo:
+    """The accepted attempt's judgement, kept as provenance (``None`` when no judge ran)."""
+
+    rubric: str
+    score: int
+    passed: bool
+
+
+@dataclass(frozen=True)
 class TaskOutcome[O: BaseModel]:
     """Result of running a task through the cascade."""
 
@@ -42,6 +51,8 @@ class TaskOutcome[O: BaseModel]:
     attempts: int
     feedback: tuple[str, ...] = ()
     on_exhausted: OnExhausted | None = None
+    model: str | None = None
+    judge: JudgeInfo | None = None
 
 
 @dataclass
@@ -81,6 +92,7 @@ class _Attempt[O: BaseModel]:
     output: O | None
     accepted: bool
     feedback: tuple[str, ...]
+    judge: JudgeInfo | None = None
 
 
 class Router:
@@ -130,7 +142,14 @@ class Router:
                 result = await self._attempt(step, feedback)
                 if result.accepted:
                     self._sink.emit(step.event("task_accepted", {}))
-                    return TaskOutcome(True, result.output, tier, attempts)
+                    return TaskOutcome(
+                        True,
+                        result.output,
+                        tier,
+                        attempts,
+                        model=self._models[tier].name,
+                        judge=result.judge,
+                    )
                 feedback = result.feedback
         return self._exhausted(task, policy, attempts, feedback, reason="tiers_exhausted")
 
@@ -197,7 +216,7 @@ class Router:
             )
         )
         if passed:
-            return _Attempt(output, True, ())
+            return _Attempt(output, True, (), JudgeInfo(rubric, verdict.score, True))
         reasons = verdict.reasons or [f"judge score {verdict.score}"]
         return _Attempt(output, False, tuple(f"judge: {reason}" for reason in reasons))
 

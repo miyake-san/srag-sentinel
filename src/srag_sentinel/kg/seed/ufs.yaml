@@ -1,0 +1,38 @@
+# Federative units and macro-regions (IBGE). `BR` is the national scope, with no region.
+regions:
+  N: Norte
+  NE: Nordeste
+  CO: Centro-Oeste
+  SE: Sudeste
+  S: Sul
+ufs:
+  AC: {name: Acre, region: N}
+  AL: {name: Alagoas, region: NE}
+  AM: {name: Amazonas, region: N}
+  AP: {name: Amapá, region: N}
+  BA: {name: Bahia, region: NE}
+  CE: {name: Ceará, region: NE}
+  DF: {name: Distrito Federal, region: CO}
+  ES: {name: Espírito Santo, region: SE}
+  GO: {name: Goiás, region: CO}
+  MA: {name: Maranhão, region: NE}
+  MG: {name: Minas Gerais, region: SE}
+  MS: {name: Mato Grosso do Sul, region: CO}
+  MT: {name: Mato Grosso, region: CO}
+  PA: {name: Pará, region: N}
+  PB: {name: Paraíba, region: NE}
+  PE: {name: Pernambuco, region: NE}
+  PI: {name: Piauí, region: NE}
+  PR: {name: Paraná, region: S}
+  RJ: {name: Rio de Janeiro, region: SE}
+  RN: {name: Rio Grande do Norte, region: NE}
+  RO: {name: Rondônia, region: N}
+  RR: {name: Roraima, region: N}
+  RS: {name: Rio Grande do Sul, region: S}
+  SC: {name: Santa Catarina, region: S}
+  SE: {name: Sergipe, region: NE}
+  SP: {name: São Paulo, region: SE}
+  TO: {name: Tocantins, region: N}
+national:
+  code: BR
+  name: Brasil

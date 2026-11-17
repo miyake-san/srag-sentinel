@@ -11,11 +11,13 @@ from srag_sentinel.agent.tools.metrics import ScopeArgs
 from srag_sentinel.domain.models import MetricsPayload
 from srag_sentinel.domain.series import SeriesPayload
 from srag_sentinel.guardrails.news import SafeArticle
+from srag_sentinel.kg.evidence import EvidencePack
 from srag_sentinel.reporting.bundle import ReportBundle
 
 NEWS_UNAVAILABLE = "NEWS_UNAVAILABLE"
 PLAN_FALLBACK = "PLAN_FALLBACK"
 NARRATIVE_REJECTED = "NARRATIVE_REJECTED"
+KG_UNAVAILABLE = "KG_UNAVAILABLE"
 MAX_SYNTHESIS_ATTEMPTS = 2
 
 
@@ -37,5 +39,7 @@ class ReportState(BaseModel):
     synthesis_attempts: int = 0
     verified: bool = False
     degradations: Annotated[list[str], operator.add] = Field(default_factory=list)
+    kg_ok: bool = False
+    evidence: EvidencePack | None = None
     report: ReportDraft | None = None
     bundle: ReportBundle | None = None

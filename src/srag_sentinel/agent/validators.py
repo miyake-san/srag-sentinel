@@ -7,6 +7,8 @@ from pydantic import BaseModel, ValidationError
 
 from srag_sentinel.agent.schemas import NewsPlan
 from srag_sentinel.guardrails.news import injection_rule
+from srag_sentinel.kg.summaries import summary_validators
+from srag_sentinel.kg.validators import kg_validators
 from srag_sentinel.llm.router.validators import BUILTIN_VALIDATORS, Issue, Validator
 from srag_sentinel.news.models import NewsQuery
 
@@ -41,4 +43,6 @@ def report_validators() -> Mapping[str, Validator]:
         **BUILTIN_VALIDATORS,
         "query_charset": query_charset,
         "max_queries": max_queries,
+        **kg_validators(),
+        **summary_validators(),
     }

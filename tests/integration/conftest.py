@@ -37,6 +37,7 @@ async def settings() -> AsyncIterator[Settings]:
         surreal_api_rw_password=secrets.token_urlsafe(16),  # type: ignore[arg-type]
         surreal_audit_writer_password=secrets.token_urlsafe(16),  # type: ignore[arg-type]
         surreal_audit_reader_password=secrets.token_urlsafe(16),  # type: ignore[arg-type]
+        surreal_kg_writer_password=secrets.token_urlsafe(16),  # type: ignore[arg-type]
     )
     await init_database(test_settings)
     yield test_settings

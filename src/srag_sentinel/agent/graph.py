@@ -1,6 +1,8 @@
 """The LangGraph StateGraph: a fixed flow with one bounded retry (ADR 0001).
 
-validate -> fetch_metrics -> plan_news -> collect_news -> synthesize -> verify -> render -> finalize
+validate -> fetch_metrics -> plan_news -> collect_news -> build_kg -> retrieve_context
+         -> synthesize -> verify -> render -> finalize
+(build_kg and retrieve_context are no-ops without a knowledge graph.)
 The only cycle is verify -> synthesize (at most one retry). LLM nodes have no tools.
 """
 
@@ -39,7 +41,9 @@ def build_graph(deps: AgentDeps) -> Any:
     graph.add_conditional_edges("validate_request", _after_validate)
     graph.add_edge("fetch_metrics", "plan_news")
     graph.add_edge("plan_news", "collect_news")
-    graph.add_edge("collect_news", "synthesize")
+    graph.add_edge("collect_news", "build_kg")
+    graph.add_edge("build_kg", "retrieve_context")
+    graph.add_edge("retrieve_context", "synthesize")
     graph.add_edge("synthesize", "verify_narrative")
     graph.add_conditional_edges("verify_narrative", _after_verify)
     graph.add_edge("render_report", "finalize")

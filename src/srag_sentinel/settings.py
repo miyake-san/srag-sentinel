@@ -50,6 +50,15 @@ class Settings(BaseSettings):
     surreal_audit_reader_user: str = "audit_reader"
     surreal_audit_reader_password: SecretStr = SecretStr("")
 
+    # Knowledge graph (docs/specs/07): its own database; only `kg_writer` writes, `api_ro` reads.
+    surreal_kg_database: str = "kg"
+    surreal_kg_writer_user: str = "kg_writer"
+    surreal_kg_writer_password: SecretStr = SecretStr("")
+    kg_enabled: bool = True
+    kg_top_k: int = Field(default=12, ge=1, le=50)
+    kg_max_hops: int = Field(default=2, ge=1, le=3)
+    kg_claim_ttl_days: int = Field(default=30, ge=1, le=365)
+
     # LLM tiers (docs/specs/03 §4 and 08 §2). `large` is the main model; `small` and `judge`
     # are optional and fall back to `large` when unset.
     llm_provider: Provider = "anthropic"
@@ -82,6 +91,8 @@ class Settings(BaseSettings):
         "surreal_api_rw_user",
         "surreal_audit_database",
         "surreal_audit_reader_user",
+        "surreal_kg_database",
+        "surreal_kg_writer_user",
     )
     @classmethod
     def _safe_identifier(cls, value: str) -> str:

@@ -89,3 +89,33 @@ def root_connection(settings: Settings) -> Connection:
         namespace=settings.surreal_namespace,
         database=settings.surreal_data_database,
     )
+
+
+def _kg_connection(settings: Settings, user: str, password: str) -> Connection:
+    return open_connection(
+        settings.surreal_url,
+        auth={
+            "namespace": settings.surreal_namespace,
+            "database": settings.surreal_kg_database,
+            "username": user,
+            "password": password,
+        },
+        namespace=settings.surreal_namespace,
+        database=settings.surreal_kg_database,
+    )
+
+
+def kg_writer_connection(settings: Settings) -> Connection:
+    """Connection to the knowledge graph as ``kg_writer`` (what the build step uses)."""
+    return _kg_connection(
+        settings,
+        settings.surreal_kg_writer_user,
+        settings.surreal_kg_writer_password.get_secret_value(),
+    )
+
+
+def kg_reader_connection(settings: Settings) -> Connection:
+    """Connection to the knowledge graph as the read-only API user."""
+    return _kg_connection(
+        settings, settings.surreal_api_ro_user, settings.surreal_api_ro_password.get_secret_value()
+    )

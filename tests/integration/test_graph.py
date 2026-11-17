@@ -173,7 +173,7 @@ async def test_happy_path_produces_a_verified_report_and_an_intact_audit_chain()
     assert report.metrics.cases_current == 150
     assert len(small.calls) == 1 and len(large.calls) == 1
     assert "<untrusted_news" in large.calls[0].user and "METRICAS" in large.calls[0].user
-    assert report.prompts == ("news.plan_queries@1", "report.synthesize@1")
+    assert report.prompts == ("news.plan_queries@1", "report.synthesize@2")
 
     chain = store.events
     assert verify_chain(chain).ok

@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from srag_sentinel.agent.schemas import Narrative
 from srag_sentinel.domain.models import MetricsPayload
 from srag_sentinel.domain.series import SeriesPayload
+from srag_sentinel.kg.evidence import EvidenceItem
 
 
 class ArticleRef(BaseModel):
@@ -37,5 +38,6 @@ class ReportDraft(BaseModel):
     series: SeriesPayload
     narrative: Narrative | None
     articles: tuple[ArticleRef, ...]
+    evidence: tuple[EvidenceItem, ...] = ()
     models: dict[str, str]
     prompts: tuple[str, ...]

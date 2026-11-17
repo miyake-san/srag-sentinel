@@ -3,7 +3,7 @@
 tasks:
   kg.extract_claims:
     tiers: [small, large]
-    validators: [schema, enums, span_in_source, entities_in_ontology, max_items]
+    validators: [schema, enums, span_in_source, entities_in_ontology, no_instructions, max_items]
     judge: on_warning
     judge_rubric: claim_extraction@1
     judge_min_score: 4

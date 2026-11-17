@@ -60,6 +60,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   strict CSP, http(s)-only source links, proxy badges, limitations and provenance), a versioned `report.json` with the
   artifact hashes, and a PDF rendered from the same HTML by WeasyPrint with a fetcher that refuses every non-`data:`
   URL. A PDF failure degrades the report (`PDF_UNAVAILABLE`) instead of failing it; artifact hashes are audited.
+- **Knowledge graph and GraphRAG** (`kg` database on SurrealDB): closed-ontology schema with typed, enforced relations,
+  versioned seeds (27 UFs, regions, symmetric borders, pathogens with pt-BR aliases), dictionary entity linking,
+  claim extraction by the small model through the router (validators for literal spans, ontology and instructions, then
+  the judge), idempotent writes with provenance, quarantine, TTL pruning, regional summaries, retrieval by BM25 plus
+  bounded graph expansion with ranking, and `build_kg`/`retrieve_context` graph nodes with the `KG_UNAVAILABLE`
+  degradation. The report lists the cited evidence with its graph path and who extracted and judged it.
+- **LLM judge**: rubric-based, structured and fail-closed, with Cohen's kappa calibration tooling and a live calibration test.
+- ADR 0019 with the SurrealDB findings for the graph.
 - 405 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), ruff and strict
   mypy clean. The real-PDF smoke test is skipped on hosts without the Pango libraries.
 

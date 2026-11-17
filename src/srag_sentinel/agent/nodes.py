@@ -11,6 +11,7 @@ from srag_sentinel.agent.deps import AgentDeps
 from srag_sentinel.agent.report import ArticleRef, ReportDraft
 from srag_sentinel.agent.schemas import Narrative, NewsPlan
 from srag_sentinel.agent.state import (
+    KG_UNAVAILABLE,
     MAX_SYNTHESIS_ATTEMPTS,
     NARRATIVE_REJECTED,
     NEWS_UNAVAILABLE,
@@ -19,6 +20,7 @@ from srag_sentinel.agent.state import (
 )
 from srag_sentinel.agent.tools.metrics import get_srag_metrics, get_srag_series
 from srag_sentinel.domain.models import MetricsPayload
+from srag_sentinel.governance.model import EventName
 from srag_sentinel.guardrails.grounding import verify_narrative
 from srag_sentinel.guardrails.input import check_request
 from srag_sentinel.guardrails.news import (
@@ -28,8 +30,15 @@ from srag_sentinel.guardrails.news import (
     references,
     wrap_untrusted,
 )
+from srag_sentinel.kg.build import build_kg as build_knowledge_graph
+from srag_sentinel.kg.evidence import EvidenceItem, wrap_evidence
+from srag_sentinel.kg.models import ReportNode, SnapshotNode
+from srag_sentinel.kg.retrieve import guide_questions
+from srag_sentinel.kg.seeds import load_seeds
+from srag_sentinel.kg.store import KgUnavailableError
+from srag_sentinel.kg.summaries import ensure_region_summary
 from srag_sentinel.llm.prompts import Prompt, load_prompt
-from srag_sentinel.llm.router.cascade import TaskSpec
+from srag_sentinel.llm.router.cascade import RouterConfigError, TaskSpec
 from srag_sentinel.news.models import Article, NewsQuery
 
 Update = dict[str, Any]
@@ -88,6 +97,8 @@ def _synthesis_user(payload: dict[str, Any], feedback: Sequence[str]) -> str:
         "METRICAS:\n" + metrics_block(payload["metrics"]),
         "NOTICIAS:\n" + (payload["news"] or "(nenhuma notícia relevante)"),
     ]
+    if payload.get("evidence"):
+        parts.append("EVIDENCIAS:\n" + payload["evidence"])
     corrections = [*payload.get("feedback", []), *feedback]
     if corrections:
         parts.append("CORRECOES (o texto anterior foi reprovado):\n" + "\n".join(corrections))
@@ -112,6 +123,8 @@ def build_nodes(deps: AgentDeps) -> dict[str, Node]:
         "fetch_metrics": ctx.fetch_metrics,
         "plan_news": ctx.plan_news,
         "collect_news": ctx.collect_news,
+        "build_kg": ctx.build_kg,
+        "retrieve_context": ctx.retrieve_context,
         "synthesize": ctx.synthesize,
         "verify_narrative": ctx.verify_narrative,
         "render_report": ctx.render_report,
@@ -234,6 +247,91 @@ class _Context:
         budget.verdicts.clear()
         return update
 
+    async def build_kg(self, state: ReportState) -> Update:
+        kg, metrics = self.deps.kg, state.metrics
+        if kg is None or metrics is None:
+            return {}
+        now = self.deps.clock()
+        budget = self.deps.budget.model_calls
+
+        def on_event(kind: str, details: Mapping[str, Any]) -> None:
+            event: EventName = "kg_quarantine" if kind == "kg_quarantine" else "kg_write"
+            self.deps.recorder.record(actor="agent", node="build_kg", event=event, details=details)
+
+        try:
+            built = await build_knowledge_graph(
+                state.articles,
+                run_id=state.run_id,
+                router=self.deps.router,
+                store=kg.store,
+                budget=budget,
+                on_event=on_event,
+                ttl_days=kg.ttl_days,
+                now=now,
+            )
+            region = load_seeds().region_of(metrics.scope)
+            summarised = False
+            if region is not None:
+                summary = await ensure_region_summary(
+                    region,
+                    store=kg.store,
+                    router=self.deps.router,
+                    run_id=state.run_id,
+                    now=now,
+                    budget=budget,
+                )
+                summarised = summary is not None
+        except (KgUnavailableError, RouterConfigError) as error:
+            self.deps.recorder.record(
+                actor="agent",
+                node="build_kg",
+                event="degradation",
+                details={"code": KG_UNAVAILABLE, "error": type(error).__name__},
+            )
+            return {"kg_ok": False, "degradations": [KG_UNAVAILABLE]}
+        self.deps.recorder.record(
+            actor="agent",
+            node="build_kg",
+            event="decision",
+            details={
+                "articles": built.articles,
+                "claims": built.claims,
+                "quarantined": built.quarantined,
+                "summary": summarised,
+            },
+        )
+        return {"kg_ok": True}
+
+    async def retrieve_context(self, state: ReportState) -> Update:
+        kg, metrics = self.deps.kg, state.metrics
+        if kg is None or metrics is None or not state.kg_ok:
+            return {}
+        try:
+            pack = await kg.retriever.retrieve(
+                scope=metrics.scope,
+                questions=guide_questions(metrics),
+                top_k=kg.top_k,
+                max_hops=kg.max_hops,
+                now=self.deps.clock(),
+            )
+        except KgUnavailableError as error:
+            self.deps.recorder.record(
+                actor="tool",
+                node="search_knowledge_graph",
+                event="degradation",
+                details={"code": KG_UNAVAILABLE, "error": type(error).__name__},
+            )
+            return {"degradations": [KG_UNAVAILABLE]}
+        self.deps.recorder.record(
+            actor="tool",
+            node="search_knowledge_graph",
+            event="tool_call",
+            inputs={"scope": metrics.scope, "questions": list(pack.questions)},
+            outputs=pack.model_dump(mode="json"),
+            details={"items": len(pack.items)},
+        )
+        return {"evidence": pack}
+
     async def synthesize(self, state: ReportState) -> Update:
         metrics = state.metrics
         assert metrics is not None  # noqa: S101
@@ -248,6 +346,7 @@ class _Context:
         payload = {
             "metrics": metrics,
             "news": wrap_untrusted(state.articles),
+            "evidence": wrap_evidence(state.evidence) if state.evidence else "",
             "feedback": list(state.feedback),
         }
         task = TaskSpec(
@@ -282,7 +381,10 @@ class _Context:
         texts = {
             item.ref: f"{item.article.title} {item.article.snippet}" for item in state.articles
         }
-        result = verify_narrative(narrative, metrics, article_texts=texts)
+        evidence = (
+            {item.evidence_id: item.text for item in state.evidence.items} if state.evidence else {}
+        )
+        result = verify_narrative(narrative, metrics, article_texts=texts, evidence_texts=evidence)
         self.deps.recorder.record_verdicts(result.verdicts)
         if result.ok:
             return {"verified": True, "feedback": []}
@@ -295,6 +397,7 @@ class _Context:
         assert metrics is not None and series is not None  # noqa: S101
         narrative = state.narrative if state.verified else None
         shown = references(state.articles)
+        cited = _cited_evidence(state, narrative)
         draft = ReportDraft(
             run_id=state.run_id,
             generated_at=self.deps.clock(),
@@ -304,6 +407,7 @@ class _Context:
             series=series,
             narrative=narrative,
             articles=tuple(_article_ref(ref, article) for ref, article in shown.items()),
+            evidence=cited,
             models=dict(self.deps.models),
             prompts=(self.plan_prompt.ref, self.synthesis_prompt.ref),
         )
@@ -327,7 +431,65 @@ class _Context:
             outputs=report.model_dump(mode="json") if report else None,
             details=details,
         )
+        await self._remember(state)
         return {}
+
+    async def _remember(self, state: ReportState) -> None:
+        """Write the snapshot and the report (with what it cited) to the graph, best effort."""
+        kg, report, metrics = self.deps.kg, state.report, state.metrics
+        if kg is None or not state.kg_ok or report is None or metrics is None:
+            return
+        snapshot = SnapshotNode(
+            id=f"{state.run_id}_{metrics.scope}",
+            scope=metrics.scope,
+            as_of=metrics.as_of.isoformat(),
+            window_days=metrics.window_days,
+            metrics={
+                m.metric_id: {
+                    "value": m.value,
+                    "numerator": m.numerator,
+                    "denominator": m.denominator,
+                    "is_proxy": m.is_proxy,
+                }
+                for m in metrics.metrics
+            },
+            run_id=state.run_id,
+            created_at=report.generated_at,
+        )
+        try:
+            await kg.store.write_snapshot(snapshot)
+            await kg.store.write_report(
+                ReportNode(
+                    run_id=state.run_id,
+                    generated_at=report.generated_at,
+                    status=report.status,
+                    snapshot_id=snapshot.id,
+                    cited=tuple(item.record_id for item in report.evidence),
+                )
+            )
+        except KgUnavailableError as error:
+            self.deps.recorder.record(
+                actor="agent",
+                node="finalize",
+                event="degradation",
+                details={
+                    "code": KG_UNAVAILABLE,
+                    "stage": "remember",
+                    "error": type(error).__name__,
+                },
+            )
+
+
+def _cited_evidence(state: ReportState, narrative: Narrative | None) -> tuple[EvidenceItem, ...]:
+    """The retrieved evidence items the verified narrative actually cites."""
+    if narrative is None or state.evidence is None:
+        return ()
+    cited = {
+        ref
+        for claim in (*narrative.metric_commentary, *narrative.news_context)
+        for ref in claim.evidence_refs
+    }
+    return tuple(item for item in state.evidence.items if item.evidence_id in cited)
 
 
 def _article_ref(ref: str, article: Article) -> ArticleRef:

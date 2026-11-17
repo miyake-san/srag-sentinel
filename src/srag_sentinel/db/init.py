@@ -6,6 +6,8 @@ from pydantic import SecretStr
 from surrealdb import AsyncSurrealConnection
 
 from srag_sentinel.db.client import open_connection, run, surql_string
+from srag_sentinel.kg.seeding import seed_graph
+from srag_sentinel.kg.seeds import load_seeds
 from srag_sentinel.settings import Settings
 
 
@@ -17,6 +19,10 @@ def _schema(name: str) -> str:
     return files("srag_sentinel.db").joinpath("schema", f"{name}.surql").read_text(encoding="utf-8")
 
 
+def _kg_schema() -> str:
+    return files("srag_sentinel.kg").joinpath("schema", "kg.surql").read_text(encoding="utf-8")
+
+
 def _require_passwords(settings: Settings) -> None:
     required = {
         "SRAG_SURREAL_ROOT_PASSWORD": settings.surreal_root_password,
@@ -25,6 +31,7 @@ def _require_passwords(settings: Settings) -> None:
         "SRAG_SURREAL_API_RW_PASSWORD": settings.surreal_api_rw_password,
         "SRAG_SURREAL_AUDIT_WRITER_PASSWORD": settings.surreal_audit_writer_password,
         "SRAG_SURREAL_AUDIT_READER_PASSWORD": settings.surreal_audit_reader_password,
+        "SRAG_SURREAL_KG_WRITER_PASSWORD": settings.surreal_kg_writer_password,
     }
     missing = [name for name, secret in required.items() if not secret.get_secret_value()]
     if missing:
@@ -51,6 +58,7 @@ async def init_database(settings: Settings) -> None:
         await run(connection, f"DEFINE DATABASE IF NOT EXISTS {data_db};")
         await run(connection, f"DEFINE DATABASE IF NOT EXISTS {app_db};")
         await run(connection, f"DEFINE DATABASE IF NOT EXISTS {settings.surreal_audit_database};")
+        await run(connection, f"DEFINE DATABASE IF NOT EXISTS {settings.surreal_kg_database};")
 
         await connection.use(namespace, data_db)
         await run(connection, _schema("data"))
@@ -83,6 +91,19 @@ async def init_database(settings: Settings) -> None:
             settings.surreal_audit_reader_user,
             settings.surreal_audit_reader_password,
             "VIEWER",
+        )
+
+        await connection.use(namespace, settings.surreal_kg_database)
+        await run(connection, _kg_schema())
+        await seed_graph(connection, load_seeds())
+        await _define_user(
+            connection,
+            settings.surreal_kg_writer_user,
+            settings.surreal_kg_writer_password,
+            "EDITOR",
+        )
+        await _define_user(
+            connection, settings.surreal_api_ro_user, settings.surreal_api_ro_password, "VIEWER"
         )
 
 

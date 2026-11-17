@@ -1,0 +1,33 @@
+# Closed ontology of respiratory agents. Aliases are matched without accents and case; the longest
+# alias wins ("influenza a" beats "influenza"). Aliases must be unique across pathogens (tested).
+pathogens:
+  influenza_a:
+    name_pt: Influenza A
+    aliases: [influenza a, h1n1, h3n2, gripe a]
+  influenza_b:
+    name_pt: Influenza B
+    aliases: [influenza b, gripe b]
+  influenza:
+    name_pt: Influenza (gripe)
+    aliases: [influenza, gripe, sindrome gripal]
+  sars_cov_2:
+    name_pt: SARS-CoV-2 (COVID-19)
+    aliases: [covid-19, covid 19, covid, coronavirus, sars-cov-2, novo coronavirus]
+  vsr:
+    name_pt: Vírus sincicial respiratório (VSR)
+    aliases: [virus sincicial respiratorio, vsr, bronquiolite]
+  rinovirus:
+    name_pt: Rinovírus
+    aliases: [rinovirus]
+  metapneumovirus:
+    name_pt: Metapneumovírus
+    aliases: [metapneumovirus, hmpv]
+  adenovirus:
+    name_pt: Adenovírus
+    aliases: [adenovirus]
+  parainfluenza:
+    name_pt: Parainfluenza
+    aliases: [parainfluenza]
+  srag_nao_especificada:
+    name_pt: SRAG não especificada
+    aliases: [srag, sindrome respiratoria aguda grave]

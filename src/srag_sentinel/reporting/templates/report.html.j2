@@ -78,7 +78,7 @@
   <p class="detail">Texto gerado por modelo de linguagem a partir de manchetes e trechos de terceiros; cada afirmação cita a fonte.</p>
   <ul>
   {% for claim in report.narrative.news_context %}
-    <li>{{ claim.text }}{% for ref in claim.article_refs %}{% if ref in articles %} <span class="ref">{{ articles[ref].source }}</span>{% endif %}{% endfor %}</li>
+    <li>{{ claim.text }}{% for ref in claim.article_refs %}{% if ref in articles %} <span class="ref">{{ articles[ref].source }}</span>{% endif %}{% endfor %}{% for ref in claim.evidence_refs %} <span class="ref">{{ ref }}</span>{% endfor %}</li>
   {% endfor %}
   </ul>
 </section>
@@ -93,6 +93,23 @@
       {% set link = article.url | safe_url %}
       {% if link %}<a href="{{ link }}" rel="noopener noreferrer nofollow">{{ article.title }}</a>{% else %}{{ article.title }}{% endif %}
       — {{ article.source }} ({{ article.domain }}){% if article.published_at %}, {{ article.published_at | date_br }}{% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{% if report.evidence %}
+<section aria-labelledby="evidencias">
+  <h2 id="evidencias">Evidências do grafo de conhecimento</h2>
+  <p class="detail">Afirmações extraídas de notícias por modelo de linguagem, verificadas e recuperadas pelo grafo; o caminho mostra como cada evidência foi alcançada.</p>
+  <ol class="sources">
+  {% for item in report.evidence %}
+    <li>
+      <span class="ref">{{ item.evidence_id }}</span> {{ item.text }}
+      {% set link = (item.url or "") | safe_url %}
+      {% if link %}— <a href="{{ link }}" rel="noopener noreferrer nofollow">fonte{% if item.provenance.source_domain %} ({{ item.provenance.source_domain }}){% endif %}</a>{% endif %}
+      <br><span class="detail">Caminho no grafo: {{ item.graph_path }} · extraído por {{ item.provenance.produced_by }}{% if item.provenance.judge %} · avaliação do juiz: {{ item.provenance.judge.score }}/5{% endif %}</span>
     </li>
   {% endfor %}
   </ol>
