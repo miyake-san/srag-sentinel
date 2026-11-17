@@ -90,6 +90,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   (`SRAG_LLM_PRIORITY`, default order OpenRouter, Groq, NVIDIA NIM, Unsloth, Gemini, Ollama) that fails over to the
   next provider and skips the ones that are not configured. Not yet exercised against a real service.
 
+- **Usage guide, architecture overview and impact report**: `docs/usage-guide.md` (examples for CLI, API, providers and
+  audit), `docs/architecture-overview.md` (every component with its ADRs, specs and tests), `docs/impact.md` (what was
+  measured, how, and a critical review) and `scripts/measure_impact.py`. The company in the brief is now stated to be
+  fictitious.
+
 ### Changed
 - Python target is **3.14** rather than 3.15: `zstandard` and `pyyaml` have no cp315 wheels (ADR 0008).
 - News source is a **chain**: Google News RSS (primary), GDELT (secondary), Tavily (optional) after GDELT proved

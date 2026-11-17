@@ -1,10 +1,22 @@
 # SRAG Sentinel
 
-Sistema agêntico que gera um **relatório de Síndrome Respiratória Aguda Grave (SRAG)** combinando métricas do OpenDATASUS com notícias em tempo real e um texto escrito por LLM **verificado por código**. PoC para a Indicium HealthCare.
+Sistema agêntico que gera um **relatório de Síndrome Respiratória Aguda Grave (SRAG)** combinando métricas do OpenDATASUS com notícias em tempo real e um texto escrito por LLM **verificado por código**. PoC de um exercício para a **HealthCare Co., uma empresa fictícia** (nome inventado; qualquer semelhança com empresas reais é coincidência). Os dados de saúde são reais e públicos (OpenDATASUS); a empresa, o contexto de negócio e os "ganhos" discutidos em [`docs/impact.md`](docs/impact.md) são ilustrativos.
 
 O relatório traz 4 métricas (aumento de casos, mortalidade, uso de UTI e vacinação) e 2 gráficos (casos diários nos últimos 30 dias e mensais nos últimos 12 meses), em **HTML, JSON e PDF**, com trilha de auditoria verificável.
 
 > **Estado honesto do projeto:** tudo roda e é testado com modelos simulados e contra um SurrealDB real. **Nenhum LLM real foi exercitado** (sem chave neste ambiente): a qualidade da narrativa, o juiz e a extração de afirmações estão sem medida. Veja [Limitações](#limitações-e-model-card) e [`docs/evaluation.md`](docs/evaluation.md).
+
+## Documentação
+
+| Documento | Para quê |
+|---|---|
+| [`docs/usage-guide.md`](docs/usage-guide.md) | guia de uso com exemplos (CLI, API, provedores, auditoria) |
+| [`docs/architecture-overview.md`](docs/architecture-overview.md) | cada componente, onde está no código e os ADRs/specs/testes correspondentes |
+| [`docs/architecture/architecture.pdf`](docs/architecture/architecture.pdf) | diagramas conceituais (PDF entregável) |
+| [`docs/adr/`](docs/adr/) | decisões de arquitetura (ADRs 0001–0019) |
+| [`docs/impact.md`](docs/impact.md) | impacto da solução e **como foi medido** (com a revisão crítica da medição) |
+| [`docs/evaluation.md`](docs/evaluation.md) · [`docs/provider-conformance.md`](docs/provider-conformance.md) | o que foi medido ou não; estado dos provedores de LLM |
+| [`SPEC.md`](SPEC.md) · [`docs/specs/`](docs/specs/) | especificações |
 
 ## Sumário
 [Arquitetura](#arquitetura) · [Quickstart](#quickstart) · [Métricas](#métricas-e-por-que-algumas-são-proxies) · [Agente](#como-o-agente-trabalha) · [GraphRAG e KG](#graphrag-e-grafo-de-conhecimento) · [Router e juiz](#llm-router-e-llm-judge) · [Guardrails](#guardrails) · [Dados pessoais](#dados-pessoais-e-lgpd) · [Governança](#governança-e-auditoria) · [Observabilidade](#observabilidade) · [API](#api-e-cli) · [Desenvolvimento](#desenvolvimento) · [Produção](#caminho-para-produção) · [Limitações](#limitações-e-model-card)

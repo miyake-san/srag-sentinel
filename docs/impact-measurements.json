@@ -1,0 +1,44 @@
+{
+  "measured_at": "2026-11-17T12:59:23+00:00",
+  "ingestion": {
+    "rows_read": 585334,
+    "rows_kept": 585334,
+    "daily_counter_rows_stored": 17944,
+    "reduction_factor": 32.6,
+    "seconds": 12.4,
+    "sources": 2
+  },
+  "metrics_and_series_seconds": {
+    "BR": {
+      "n": 20,
+      "p50": 0.137,
+      "p95": 0.207,
+      "max": 0.242,
+      "mean": 0.149
+    },
+    "SP": {
+      "n": 20,
+      "p50": 0.089,
+      "p95": 0.111,
+      "max": 0.115,
+      "mean": 0.092
+    }
+  },
+  "report_without_llm_seconds": {
+    "n": 20,
+    "p50": 1.175,
+    "p95": 1.304,
+    "max": 1.891,
+    "mean": 1.224
+  },
+  "artifact_bytes": {
+    "html": 47724,
+    "json": 9094
+  },
+  "audit": {
+    "events_in_last_run": 26,
+    "events_total": 520,
+    "chain_verified": true,
+    "read_and_verify_seconds": 0.069
+  }
+}

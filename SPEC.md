@@ -7,7 +7,7 @@
 
 ## 1. Objetivo
 
-Construir uma PoC (Indicium HealthCare Inc.) de um **agente de IA generativa** que gera, de forma automatizada, um **relatório de situação de SRAG** (Síndrome Respiratória Aguda Grave) para profissionais de saúde, combinando:
+Construir uma PoC para a **HealthCare Co., empresa fictícia** criada para este exercício (qualquer semelhança com empresas reais é coincidência), de um **agente de IA generativa** que gera, de forma automatizada, um **relatório de situação de SRAG** (Síndrome Respiratória Aguda Grave) para profissionais de saúde, combinando:
 
 1. **Métricas determinísticas** calculadas sobre o banco SRAG do Open DATASUS (via ferramenta de consulta);
 2. **Contexto de notícias em tempo real** (via ferramenta de busca de notícias) para embasar e explicar o cenário;

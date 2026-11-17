@@ -15,7 +15,7 @@
 ## Decisões
 - **Descoberta de URL**: ler a página do recurso (`/dataset/srag-2019-a-2026/resource/<id>`) e extrair o link "Baixar" por regex restrita ao host/prefixo S3 esperado (`https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SRAG/`), com os **IDs de recurso por ano** em configuração; permitir `--url` explícito como override; falhar de forma clara se o padrão mudar. Sem API CKAN.
 - **Ingestão por leitura remota** com projeção (sem baixar o arquivo inteiro nem manter `data/raw`); o `--keep-raw` vira opcional/depuração. Registrar no manifest URL final, tamanho do corpo (quando disponível) e linhas lidas.
-- **Allowlist reduzida a 8 colunas**: `DT_NOTIFIC`, `DT_SIN_PRI` (apenas para a métrica interna de defasagem/maturidade), `SG_UF_NOT`, `HOSPITAL`, `UTI`, `EVOLUCAO`, `VACINA_COV`, `VACINA`. `CLASSI_FIN` sai (não usada → minimização).
+- **Allowlist reduzida a 8 colunas** (*atualização: na implementação ficou em **7**; `DT_SIN_PRI` também saiu, pois a defasagem passou a ser tratada por `settle_days`, ADR 0015*): `DT_NOTIFIC`, `DT_SIN_PRI` (apenas para a métrica interna de defasagem/maturidade), `SG_UF_NOT`, `HOSPITAL`, `UTI`, `EVOLUCAO`, `VACINA_COV`, `VACINA`. `CLASSI_FIN` sai (não usada → minimização).
 - **Anos ingeridos**: padrão = ano de `as_of` e o anterior; cobre a janela de 12 meses. Notificações com início de sintomas dois anos epidemiológicos atrás (arquivo mais antigo) ficam de fora — impacto desprezível (lag máx. observado 600 d, 0,5 % > 90 d); documentar no relatório como limitação e permitir `--years` adicional.
 - **Regras de limpeza**: `null` e códigos fora do domínio → `9` (ignorado); `HOSPITAL ≠ 1` não entra nas métricas de gravidade (mas conta em `cases`).
 
