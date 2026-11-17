@@ -41,6 +41,7 @@ class Telemetry:
         self._kg_quarantined = meter.create_counter("srag.kg.quarantined")
         self._kg_items = meter.create_histogram("srag.kg.retrieval.items")
         self._degradations = meter.create_counter("srag.report.degradations")
+        self._api_rejections = meter.create_counter("srag.api.rejections")
 
     # -- spans -----------------------------------------------------------------------------
 
@@ -71,6 +72,10 @@ class Telemetry:
         self._report_seconds.record(seconds, {"status": status})
         for code in degradations:
             self._degradations.add(1, {"code": code})
+
+    def api_rejected(self, reason: str) -> None:
+        """Count a request refused at the API perimeter (reason is a fixed code, never a key)."""
+        self._api_rejections.add(1, {"reason": reason})
 
     # -- audit bridge ----------------------------------------------------------------------
 

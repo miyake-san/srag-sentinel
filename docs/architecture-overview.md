@@ -63,4 +63,4 @@ flowchart TB
 | Dados sensíveis | só 7 colunas e só agregados ([ADR 0002](adr/0002-datasus-column-allowlist-and-aggregates.md)), scrubber de PII, segredos por ambiente |
 | Código limpo | ruff, mypy strict, 699 testes (96% de cobertura), [skills do projeto](../.claude/skills/README.md) |
 
-Outros documentos: [ontologia e grafo de conhecimento](ontology-and-knowledge-graph.md) · [guia do SurrealDB](surrealdb.md) · [guia de uso](usage-guide.md) · [avaliação](evaluation.md) · [impacto](impact.md) · [conformidade dos provedores](provider-conformance.md) · [CHANGELOG](../CHANGELOG.md) · [plano e tarefas](../tasks/).
+Outros documentos: [validação de segurança](security-validation.md) · [spec 09 (API, agentes e chat)](specs/09-agent-and-api-security.md) · [ontologia e grafo de conhecimento](ontology-and-knowledge-graph.md) · [guia do SurrealDB](surrealdb.md) · [guia de uso](usage-guide.md) · [avaliação](evaluation.md) · [impacto](impact.md) · [conformidade dos provedores](provider-conformance.md) · [CHANGELOG](../CHANGELOG.md) · [plano e tarefas](../tasks/).

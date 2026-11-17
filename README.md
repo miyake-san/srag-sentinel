@@ -13,7 +13,7 @@ O relatório traz 4 métricas (aumento de casos, mortalidade, uso de UTI e vacin
 | [`docs/usage-guide.md`](docs/usage-guide.md) | guia de uso com exemplos (CLI, API, provedores, auditoria) |
 | [`docs/architecture-overview.md`](docs/architecture-overview.md) | cada componente, onde está no código e os ADRs/specs/testes correspondentes |
 | [`docs/architecture/architecture.pdf`](docs/architecture/architecture.pdf) | diagramas conceituais (PDF entregável) |
-| [`docs/adr/`](docs/adr/) | decisões de arquitetura (ADRs 0001–0019) |
+| [`docs/adr/`](docs/adr/) | decisões de arquitetura (ADRs 0001–0022); validação de segurança em [`docs/security-validation.md`](docs/security-validation.md) |
 | [`docs/ontology-and-knowledge-graph.md`](docs/ontology-and-knowledge-graph.md) | ontologia, construção e recuperação do grafo de conhecimento (GraphRAG) |
 | [`docs/surrealdb.md`](docs/surrealdb.md) | guia do SurrealDB: databases e namespaces, recursos, segurança, armadilhas e material de estudo |
 | [`docs/impact.md`](docs/impact.md) | impacto da solução e **como foi medido** (com a revisão crítica da medição) |
@@ -41,7 +41,7 @@ flowchart LR
     orch -. OTLP .-> otel["Collector → Jaeger · Prometheus → Grafana"]
 ```
 
-Decisões e justificativas: [`docs/adr/`](docs/adr/) (ADRs 0001–0019). Especificações: [`SPEC.md`](SPEC.md) e [`docs/specs/`](docs/specs/).
+Decisões e justificativas: [`docs/adr/`](docs/adr/) (ADRs 0001–0022). Especificações: [`SPEC.md`](SPEC.md) e [`docs/specs/`](docs/specs/).
 
 **Diferenças entre o desenho e a implementação:** os relatórios são guardados como arquivos (volume `reports`, uma pasta por `run_id`) e não no banco `app`, que está reservado; o cache de notícias é em memória.
 
@@ -57,7 +57,7 @@ docker compose up -d --build                     # SurrealDB, API e telemetria
 docker compose run --rm --no-deps app report --uf BR
 ```
 
-O último comando imprime os caminhos de `report.html`, `report.json` e `report.pdf` (dentro do volume `reports`). Para copiá-los: `docker compose cp app:/data/reports ./reports`. Ou use a API: `POST http://127.0.0.1:8080/v1/reports` com `{"uf": "SP"}`.
+O último comando imprime os caminhos de `report.html`, `report.json` e `report.pdf` (dentro do volume `reports`). Para copiá-los: `docker compose cp app:/data/reports ./reports`. Ou use a API: `POST http://127.0.0.1:8080/v1/reports` com `{"uf": "SP"}` e o cabeçalho `Authorization: Bearer <chave de SRAG_API_KEYS>` (obrigatória no Compose; veja o [guia de uso](docs/usage-guide.md)).
 
 Interfaces locais (somente `127.0.0.1`): API `:8080`, Jaeger `:16686`, Grafana `:3000` (usuário `admin`, senha `GRAFANA_ADMIN_PASSWORD`). O SurrealDB **não** publica porta.
 

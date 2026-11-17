@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     # OTLP/HTTP collector base URL (the standard OpenTelemetry variable); unset = no export.
     otel_endpoint: str | None = Field(default=None, validation_alias="OTEL_EXPORTER_OTLP_ENDPOINT")
 
+    # API perimeter (docs/specs/09 §3). Comma-separated bearer keys; required outside `dev`.
+    api_keys: SecretStr = SecretStr("")
+    api_rate_per_minute: int = Field(default=10, ge=1, le=600)
+    api_max_concurrent: int = Field(default=2, ge=1, le=32)
+    api_max_body_bytes: int = Field(default=1024, ge=64, le=65536)
+
     # Where rendered reports (HTML/JSON/PDF) are kept, one folder per run id.
     reports_dir: Path = Path("reports")
 

@@ -7,6 +7,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 ## [Unreleased]
 
 ### Added
+- **API perimeter** (`api/perimeter.py`, spec 09 A1–A7, ADR 0020): bearer keys (`SRAG_API_KEYS`, required outside
+  `dev`; Compose now runs as `prod`), per-key rate limit, concurrency cap, 1 KiB JSON-only body, security headers, CSP
+  on the HTML report, counters-only audit route and `srag.api.rejections`. **Breaking for API clients:** send
+  `Authorization: Bearer`.
+- **Security validation** (`docs/security-validation.md`), spec 09 (API perimeter, agent and future chat security) and
+  ADRs 0020–0022. Finds that the API has no authentication, rate limit or body cap (not yet implemented), that the
+  injection detector is a signal rather than a barrier, and fixes spec 04 drift (7 columns, `env.example`).
 - **Specifications** (Portuguese): `SPEC.md` and detailed specs `docs/specs/01`–`08` covering architecture, data and
   metrics, agent and tools, guardrails and security, governance and audit, observability and deployment,
   **GraphRAG with a knowledge graph on SurrealDB** (07) and the **LLM Router and LLM Judge** (08).

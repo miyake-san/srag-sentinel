@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from srag_sentinel import __version__
 from srag_sentinel.api.errors import install_error_handlers, problem
+from srag_sentinel.api.perimeter import Perimeter, PerimeterMiddleware
 from srag_sentinel.governance.model import AuditEvent
 from srag_sentinel.observability.setup import (
     configure_logging,
@@ -84,11 +85,14 @@ Service = Annotated[ServicePort, Depends(get_service)]
 def create_app(settings: Settings | None = None, *, service: ServicePort | None = None) -> FastAPI:
     """Build the app. Tests pass a fake ``service``; production builds one from the settings."""
 
+    config = settings or get_settings()
+    perimeter = Perimeter.from_settings(config)  # fails the boot when keys are required
+
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        config = settings or get_settings()
         configure_logging(config.log_level)
         runtime = setup_telemetry(config.otel_endpoint, environment=config.environment)
+        perimeter.on_reject = runtime.telemetry.api_rejected
         built = service or ReportService(config, telemetry=runtime.telemetry)
         await built.start()
         app.state.service = built
@@ -100,7 +104,8 @@ def create_app(settings: Settings | None = None, *, service: ServicePort | None 
 
     app = FastAPI(title="SRAG Sentinel", version=__version__, lifespan=lifespan)
     install_error_handlers(app)
-    if (settings or get_settings()).otel_endpoint:
+    app.add_middleware(PerimeterMiddleware, perimeter=perimeter)
+    if config.otel_endpoint:
         FastAPIInstrumentor.instrument_app(app, excluded_urls="healthz,readyz")
     _add_health_routes(app)
     _add_report_routes(app)
@@ -167,10 +172,14 @@ def _add_audit_routes(app: FastAPI) -> None:
                 {
                     "seq": e.seq,
                     "ts": e.ts,
-                    "actor": e.actor,
                     "node": e.node,
                     "event": e.event,
-                    "details": e.details,
+                    # Counters only (A6): free text and identifiers never leave through this route.
+                    "details": {
+                        key: value
+                        for key, value in e.details.items()
+                        if isinstance(value, int) and not isinstance(value, bool)
+                    },
                     "hash": e.hash,
                 }
                 for e in events

@@ -256,5 +256,6 @@ Metas: cobertura ≥ 85 % (≥ 95 % em `domain/` e `guardrails/`); nenhum teste 
 | 06 | [observability-deployment](docs/specs/06-observability-deployment.md) | OTel, Compose, Dockerfile, CI |
 | 07 | [graphrag-knowledge-graph](docs/specs/07-graphrag-knowledge-graph.md) | grafo de conhecimento no SurrealDB, construção, recuperação híbrida, segurança, avaliação |
 | 08 | [llm-router-judge](docs/specs/08-llm-router-judge.md) | tiers small/large, política de roteamento, cascata, juiz, auditoria |
+| 09 | [agent-and-api-security](docs/specs/09-agent-and-api-security.md) | perímetro da API, endurecimento de detecção/PII, condições para um chat ([validação](docs/security-validation.md)) |
 | — | [architecture.md](docs/architecture/architecture.md) | diagramas Mermaid (contexto, fluxo, router/judge, KG, ingestão, implantação) |
 | — | [`.claude/skills/README.md`](.claude/skills/README.md) | skills do projeto: origem, licença, o que foi (e não foi) incorporado |

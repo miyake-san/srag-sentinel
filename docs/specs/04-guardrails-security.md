@@ -25,7 +25,7 @@ Implementação: módulo `guardrails/`, cada guardrail = função pura `check(..
 ### G1 — Entrada
 - Schema estrito Pydantic (`extra="forbid"`): `uf ∈ {BR, 27 UFs}`, `as_of` entre 2019-01-01 e `max(DT_NOTIFIC)`, `window_days ∈ [7, 90]`.
 - Nenhum texto livre do usuário chega ao LLM na PoC (superfície reduzida); se campo livre for adicionado → *Ask first* + G1b (injection/PII).
-- Rate limit por IP/chave (middleware) e tamanho máximo de corpo.
+- Rate limit por IP/chave (middleware) e tamanho máximo de corpo. **Ainda não implementado**: requisitos A1–A7 em [09](09-agent-and-api-security.md) e [ADR 0020](../adr/0020-api-perimeter-controls.md); validação em [security-validation](../security-validation.md).
 
 ### G2 — Notícias (dado não confiável)
 - Allowlist/score de domínios (agências de saúde, grandes veículos; lista em arquivo versionado); fora da lista → descartado ou rebaixado.
@@ -50,14 +50,14 @@ Política: 1 retry com a lista de violações; persistindo ⇒ `NARRATIVE_REJECT
 
 | Dado | Política |
 |---|---|
-| Colunas do Open DATASUS | allowlist de 8 colunas (leitura remota com projeção: as demais nem saem da fonte) ([02](02-data-and-metrics.md) §3); o restante é descartado no ingest, antes de curar e de qualquer log |
+| Colunas do Open DATASUS | allowlist de 7 colunas (leitura remota com projeção: as demais nem saem da fonte) ([02](02-data-and-metrics.md) §3); o restante é descartado no ingest, antes de curar e de qualquer log |
 | Linhas individuais | **nunca** enviadas ao LLM, a logs ou a traces; só agregados |
 | Agregados pequenos | supressão `<5` em recortes secundários |
 | Prompts/respostas LLM | armazenados na auditoria **somente como hash + versão** por padrão; texto completo apenas com `AUDIT_STORE_CONTENT=true` (dev) e passando pelo scrubber |
 | Logs/traces | sem payloads; atributos limitados a ids, contagens, hashes; processador OTel de *redaction* no Collector como segunda barreira |
 | Banco de dados | só agregados diários (sem linhas individuais) em `data`; `data` e `audit` somente-leitura para a API; `audit` append-only; consultas sempre parametrizadas; credenciais por papel; SurrealDB não exposto fora da rede interna do Compose (sem `ports:` no host em modo "prod-like") |
 | Chaves dos provedores de LLM | `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`/`GEMINI_API_KEY`, `NVIDIA_API_KEY`, `OPENROUTER_API_KEY` (+ `TAVILY_API_KEY`) via env/secret, `SecretStr`, **somente a chave do provedor ativo é injetada** no container; nunca em logs/traces/auditoria |
-| Segredos | `.env` fora do git (`.gitignore` já cobre), `.env.example` sem valores, Docker secrets/env em runtime, nunca `ARG`/`COPY` de segredos; `pydantic.SecretStr`; scan (gitleaks) no CI |
+| Segredos | `.env` fora do git (`.gitignore` já cobre), `env.example` sem valores, Docker secrets/env em runtime, nunca `ARG`/`COPY` de segredos; `pydantic.SecretStr`; scan (gitleaks) no CI |
 | LGPD | dados abertos já anonimizados pela fonte; mesmo assim minimização + risco de reidentificação por combinação de atributos (por isso sem município/idade/sexo nesta PoC); documentado no README |
 
 ## 4. Segurança de aplicação e container

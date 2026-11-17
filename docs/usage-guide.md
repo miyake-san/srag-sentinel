@@ -67,8 +67,10 @@ run 27781898-d776-4118-b71b-14ff1bc731d1: degraded
 ```bash
 uv run srag-sentinel serve --port 8080        # ou: docker compose up -d
 ```
+Toda rota, exceto `/healthz` e `/readyz`, exige `Authorization: Bearer <chave>` com uma das chaves de `SRAG_API_KEYS` (separadas por vírgula; obrigatória fora de `SRAG_ENVIRONMENT=dev`, e o Compose roda em `prod`). Limites por padrão: 10 gerações por minuto por chave (429 com `Retry-After`), 2 gerações simultâneas (429), corpo de até 1 KiB e `Content-Type: application/json` (413/415). Veja [spec 09](specs/09-agent-and-api-security.md) e o [ADR 0020](adr/0020-api-perimeter-controls.md).
 ```bash
-curl -s -X POST http://127.0.0.1:8080/v1/reports \
+export SRAG_KEY=<sua-chave>          # a mesma de SRAG_API_KEYS
+curl -s -X POST http://127.0.0.1:8080/v1/reports -H "Authorization: Bearer $SRAG_KEY" \
   -H 'content-type: application/json' -d '{"uf": "SP", "window_days": 30}'
 ```
 ```json
@@ -84,14 +86,14 @@ curl -s -X POST http://127.0.0.1:8080/v1/reports \
 }
 ```
 ```bash
-curl -s "http://127.0.0.1:8080/v1/reports/<run_id>?format=pdf" -o relatorio.pdf
+curl -s -H "Authorization: Bearer $SRAG_KEY" "http://127.0.0.1:8080/v1/reports/<run_id>?format=pdf" -o relatorio.pdf
 curl -s  http://127.0.0.1:8080/readyz          # {"status": "ready"} quando há banco e dados
 ```
 
 Requisição inválida (nenhum valor é repetido na resposta):
 ```bash
-curl -s -X POST http://127.0.0.1:8080/v1/reports -H 'content-type: application/json' \
-  -d '{"uf": "BR; REMOVE TABLE x", "window_days": 500}'
+curl -s -X POST http://127.0.0.1:8080/v1/reports -H "Authorization: Bearer $SRAG_KEY" \
+  -H 'content-type: application/json' -d '{"uf": "BR; REMOVE TABLE x", "window_days": 500}'
 ```
 ```json
 {"type": "about:blank", "title": "Invalid request", "status": 422,
@@ -118,7 +120,7 @@ Exemplo com `jq`: `jq '.report.metrics.metrics[] | {metric_id, value, is_proxy}'
 ## 5. Auditar uma execução
 
 ```bash
-curl -s http://127.0.0.1:8080/v1/audit/<run_id>                    # eventos da execução
+curl -s -H "Authorization: Bearer $SRAG_KEY" http://127.0.0.1:8080/v1/audit/<run_id>   # eventos (só contadores nos detalhes)
 uv run srag-sentinel audit verify                                  # recalcula a cadeia de hashes
 uv run srag-sentinel audit export --out audit.jsonl                # imprime o head: guarde-o fora do banco
 uv run srag-sentinel audit verify --expected-head <hash-guardado>  # detecta truncamento do fim
@@ -145,4 +147,5 @@ Com o Compose no ar: traces em Jaeger (`http://127.0.0.1:16686`), painéis em Gr
 | `no provider in the priority list is usable` | nenhum provedor da lista tem chave, endpoint ou pacote | exporte as chaves; instale extras (`--extra groq` etc.) |
 | `PDF_UNAVAILABLE` | faltam bibliotecas do Pango | use a imagem Docker (já inclui) |
 | `ingest` recusa um só arquivo anual | proteção contra contagens parciais (ADR 0015) | informe os dois anos ou use `--allow-partial` conscientemente |
+| 401 / 429 / 413 / 415 | chave ausente ou errada / limite de taxa ou de concorrência / corpo grande / não é JSON | envie `Authorization: Bearer`, respeite `Retry-After`, veja o [perímetro](specs/09-agent-and-api-security.md) |
 | 422 em `POST /v1/reports` | `uf`, `window_days` ou `as_of` inválidos | veja `errors[]` na resposta |

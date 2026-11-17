@@ -19,6 +19,7 @@ x-app: &app
     - path: ${SRAG_ENV_FILE:-.env}
       required: false  # secrets can also come from the environment (CI, orchestrator)
   environment: &app-env
+    SRAG_ENVIRONMENT: prod  # the API refuses to boot without SRAG_API_KEYS (docs/specs/09 A1)
     SRAG_SURREAL_URL: ws://surrealdb:8000/rpc
     OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
   read_only: true
