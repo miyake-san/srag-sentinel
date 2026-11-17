@@ -79,6 +79,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - 405 automated tests (unit, property-based, adversarial and integration against a real SurrealDB), ruff and strict
   mypy clean. The real-PDF smoke test is skipped on hosts without the Pango libraries.
 
+- **Documentation and evaluation**: full README (architecture, quickstart, metrics and proxies, guardrails, LGPD,
+  audit, limitations and model card), ADRs 0001–0011, `docs/evaluation.md` (what was measured and what was not),
+  `docs/provider-conformance.md`, an end-to-end script for the Compose stack and the `kg prune` command.
+- **Adversarial corpus**: 35 prompt-injection payloads checked against the news filter, the knowledge-graph build and
+  the judge prompt, plus hostile request parameters and a false-positive check on real headlines.
+
 ### Changed
 - Python target is **3.14** rather than 3.15: `zstandard` and `pyyaml` have no cp315 wheels (ADR 0008).
 - News source is a **chain**: Google News RSS (primary), GDELT (secondary), Tavily (optional) after GDELT proved
@@ -87,6 +93,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   (ADR 0015).
 
 ### Fixed
+- The news filter missed 13 of 35 injection payloads (role-play, grade manipulation, requests to leak instructions,
+  text addressed to the model); its rules now cover them.
+- The Docker reports volume was owned by root, so the non-root service could not store reports.
 - Case growth (M1) was biased downwards by the incomplete newest days: on real data it moves from −15.6% to −8.8%,
   and the mortality completeness rises from 49.8% to 53.6%.
 - `ingest` now refuses a single yearly file, which would overwrite days split across files with partial counts;

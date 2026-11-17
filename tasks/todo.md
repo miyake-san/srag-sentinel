@@ -156,11 +156,11 @@ Legenda de tamanho: XS 1 arquivo · S 1–2 · M 3–5. Verificação padrão de
 
 ## Fase 4 — Endurecimento e entrega
 
-- [ ] **T20 — Corpus adversarial, conformidade de provedores e e2e** (M) [04 §5][SPEC §8]
+- [~] **T20 — Corpus adversarial, conformidade de provedores e e2e** (M) [04 §5][SPEC §8] — ✔ corpus adversarial (35 payloads) que achou e corrigiu 13 lacunas do G2, testes de CLI, `kg prune`, `scripts/e2e.sh`, `docs/evaluation.md` e `docs/provider-conformance.md`. ⚠ **faltam, por exigirem chave de LLM:** testes `live` por provedor, κ do juiz, F1 de afirmações, taxa de escalada, custo e p95 de latência
   - Aceite: corpus completo da spec (injeção, grounding, PII, parâmetros, orçamento, fail-closed, `api_ro` sem escrita, **envenenamento do KG e manipulação do juiz**); avaliações do GraphRAG/router: F1 de extração (small × large), recall@K, concordância juiz × humano (κ ≥ 0,6), taxa de escalada (meta ≥ 70 % resolvido em `small`) e custo vs. baseline "tudo large"; e2e via Compose; teste `live` por provedor (Anthropic/Gemini/NIM/OpenRouter) executado com as chaves disponíveis e resultado registrado; metas de latência p95 ≤ 90 s medidas.
   - Verifica: `pytest -m "not live"` verde; relatório de conformidade em `docs/provider-conformance.md`.
   - Arquivos: `tests/e2e/*`, `tests/guardrails/corpus/*`, `docs/provider-conformance.md`. Dep.: T14–T16
-- [ ] **T21 — README, ADRs e model card** (M) — **entregável do desafio**
+- [x] **T21 — README, ADRs e model card** (M) — **entregável do desafio** — ✔ README completo (com model card e limitações), ADRs 0001–0019, SPEC.md atualizado. ⚠ o quickstart foi validado por partes (init, ingest, report no Docker), não por um revisor num clone limpo; sem capturas de tela do Grafana
   - Aceite: README (visão, arquitetura com os diagramas Mermaid + link do PDF, GraphRAG/KG e router/judge explicados, quickstart `docker compose up`, decisões, métricas e proxies explicados, guardrails, PII/LGPD, governança/auditoria, observabilidade com capturas, troubleshooting, caminho para produção, limitações/model card); ADRs 0001–0019 completos; SPEC.md com status "implementado".
   - Verifica: um revisor segue só o README num clone limpo e obtém o relatório; links internos válidos.
   - Arquivos: `README.md`, `docs/adr/*.md`, `SPEC.md`. Dep.: T19, T20

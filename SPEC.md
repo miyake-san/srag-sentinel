@@ -1,8 +1,9 @@
 # Spec: SRAG Sentinel
 
-> Status: **DRAFT rev. 2 — aguardando aprovação** · Data de referência das versões: 2026-11-16
+> Status: **implementado (PoC) — com ressalvas** · Data de referência das versões: 2026-11-16
+> O código segue esta spec; o que ficou de fora ou não foi medido está em [`README.md`](README.md#limitações-e-model-card), [`docs/evaluation.md`](docs/evaluation.md) e [`tasks/todo.md`](tasks/todo.md). Diferenças conhecidas: relatórios em arquivos (não no banco `app`), cache de notícias em memória, vetores (HNSW) e Tavily adiados, sem telemetria de tokens/custo.
 > Rev. 2: decisões do usuário incorporadas (provedores de LLM, SurrealDB, PDF do relatório, skills do repo) — ver §9.
-> Specs detalhadas: [`docs/specs/`](docs/specs/) · Fase atual: *Specify* (plano e tarefas só após aprovação)
+> Specs detalhadas: [`docs/specs/`](docs/specs/) · ADRs: [`docs/adr/`](docs/adr/)
 
 ## 1. Objetivo
 

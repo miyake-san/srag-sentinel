@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from helpers import writer_connection
 
+from srag_sentinel import cli
 from srag_sentinel.agent.schemas import Claim, Narrative, NewsPlan
 from srag_sentinel.data.repository import SurrealCountersWriter
 from srag_sentinel.domain.models import DailyCounters
@@ -97,3 +98,12 @@ async def test_a_rejected_request_writes_no_files(settings: Settings, tmp_path: 
 
     assert result.rejected and result.files == {}
     assert list(tmp_path.iterdir()) == []
+
+
+def test_kg_prune_command_runs_against_the_real_graph(
+    settings: Settings, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(cli, "get_settings", lambda: settings)
+
+    assert cli.main(["kg", "prune"]) == 0
+    assert "pruned 0 expired node(s)" in capsys.readouterr().out

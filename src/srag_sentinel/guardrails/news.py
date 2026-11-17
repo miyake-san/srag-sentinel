@@ -39,6 +39,24 @@ _INJECTION = tuple(
         r"\bfunction_call\b|\btool_call\b|\btool_use\b",
         r"```",
         r"\b(responda|answer|respond|reply) (apenas|only|exclusively|somente)\b",
+        # role-play and persona switches
+        r"\ba partir de agora\b.{0,30}\b(voce|you)\b|\bagora voce (deve|tem que|precisa)\b",
+        r"\bfinja\b|\batue como\b|\bdeveloper mode\b|\bmodo desenvolvedor\b",
+        r"\bsem restricoes\b|\bwithout restrictions\b|\bunrestricted\b|\bsem filtros\b",
+        # attempts to manipulate a grader or a validator
+        r"\b(de|de a|give|assign)\b.{0,25}\b(nota|score|grade)\b.{0,12}\b(5|10|maxima|max)\b",
+        r"\bnota (5|maxima)\b|\bscore of (5|10)\b",
+        r"\b(aprove|approve)\b.{0,12}\b(sem|este|esta|isto|tudo|this|it|everything|without)\b",
+        r"\boverride (the )?(validation|checks?|verification)\b|\bas passed\b",
+        r"\bignore\b.{0,15}\b(verificador|validacao|verification|validator|checks?)\b",
+        # requests to leak instructions or secrets
+        r"\b(mostre|show|print|output|imprima|exiba)\b.{0,25}"
+        r"\b(instruc\w*|instructions?|chaves?|keys?|prompt)\b",
+        r"\bconteudo do prompt\b|\bapi key\b|\bchaves? de api\b|\bsecrets?\b.{0,10}\bhold\b",
+        # text addressed to the model rather than to a reader
+        r"\b(nota|instrucao|atencao|importante|note)\b.{0,12}\b(para|ao|to)\b.{0,12}"
+        r"\b(assistente|modelo|ia|llm|assistant|model|ai)\b|\batencao ia\b",
+        r"\bdesconsidere o contexto\b|\bdisregard the (above|context)\b",
     )
 )
 _RELEVANT = (

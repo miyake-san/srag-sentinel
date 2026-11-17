@@ -65,7 +65,9 @@ async def test_recall_at_12_meets_the_target_on_labelled_questions(settings: Set
             returned = [item.article_id for item in pack.items if item.article_id]
             recalls.append(recall_at_k({ids[r] for r in relevant}, returned, 12))
 
-    assert sum(recalls) / len(recalls) >= 0.8, recalls
+    mean = sum(recalls) / len(recalls)
+    print(f"recall@12 over {len(recalls)} questions: mean={mean:.3f} min={min(recalls):.2f}")
+    assert mean >= 0.8, recalls
 
 
 async def test_every_item_has_provenance_a_path_and_a_source(settings: Settings) -> None:

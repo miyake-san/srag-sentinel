@@ -75,6 +75,10 @@ def build_parser() -> argparse.ArgumentParser:
     export_cmd = audit_commands.add_parser("export", help="export the audit chain as JSONL")
     export_cmd.add_argument("--out", type=Path, required=True, help="target .jsonl file")
 
+    kg = commands.add_parser("kg", help="knowledge-graph maintenance")
+    kg_commands = kg.add_subparsers(dest="kg_command", required=True)
+    kg_commands.add_parser("prune", help="delete expired claims and articles")
+
     db = commands.add_parser("db", help="database administration")
     db_commands = db.add_subparsers(dest="db_command", required=True)
     db_commands.add_parser("init", help="create namespace, databases, schema and role users")
@@ -89,6 +93,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     handlers: dict[str, Callable[[], int]] = {
         "db": _db_init,
         "audit": lambda: _audit(args),
+        "kg": _kg_prune,
         "serve": lambda: _serve(host=args.host, port=args.port),
         "report": lambda: _report(uf=args.uf, as_of=args.as_of, window_days=args.window_days),
         "ingest": lambda: _ingest(
@@ -121,6 +126,36 @@ def _audit(args: argparse.Namespace) -> int:
         return 0
     print(f"AUDIT CHAIN BROKEN at seq {result.failed_seq}: {result.reason}")
     return 1
+
+
+def _kg_prune() -> int:
+    from srag_sentinel.db.client import open_connection  # noqa: PLC0415
+    from srag_sentinel.kg.store import KgUnavailableError, SurrealKgStore  # noqa: PLC0415
+
+    settings = get_settings()
+
+    async def _run() -> int:
+        auth = {
+            "namespace": settings.surreal_namespace,
+            "database": settings.surreal_kg_database,
+            "username": settings.surreal_kg_writer_user,
+            "password": settings.surreal_kg_writer_password.get_secret_value(),
+        }
+        async with open_connection(
+            settings.surreal_url,
+            auth=auth,
+            namespace=settings.surreal_namespace,
+            database=settings.surreal_kg_database,
+        ) as connection:
+            return await SurrealKgStore(connection).prune(datetime.now(UTC))
+
+    try:
+        removed = asyncio.run(_run())
+    except KgUnavailableError as error:
+        print(f"error: {error}")
+        return 2
+    print(f"pruned {removed} expired node(s)")
+    return 0
 
 
 def _serve(*, host: str, port: int) -> int:
