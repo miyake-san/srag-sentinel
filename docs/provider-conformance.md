@@ -5,7 +5,7 @@ O sistema fala com os modelos por uma porta mínima (`StructuredModel`, ADR 0007
 | Prioridade sugerida | Provedor | Pacote (extra) | Credencial / endpoint | Teste `live` executado? |
 |---|---|---|---|---|
 | 1 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | **não** |
-| 2 | Groq | `groq` | `GROQ_API_KEY` | **não** |
+| 2 | Groq | `groq` | `GROQ_API_KEY` | **sim** (2026-11-17, modelo configurado no `.env`): `test_conformance` passou; calibração do juiz em [`evaluation.md`](evaluation.md) |
 | 3 | NVIDIA NIM | `nvidia` | `NVIDIA_API_KEY` (+ `SRAG_NVIDIA_BASE_URL` se auto-hospedado) | **não** |
 | 4 | Unsloth / OpenAI-compatível | `unsloth` (`langchain-openai`) | `SRAG_UNSLOTH_BASE_URL` (obrigatório), `UNSLOTH_API_KEY` (opcional) | **não** |
 | 5 | Gemini | `google` | `GOOGLE_API_KEY` / `GEMINI_API_KEY` | **não** |

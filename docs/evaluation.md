@@ -19,13 +19,13 @@ Números produzidos nos testes deste repositório (2026-11-17). Onde o dado depe
 | Item | Meta da spec | Estado |
 |---|---|---|
 | F1 de afirmações (modelo pequeno + juiz) | ≥ 0,70 | os testes usam um extrator oráculo (F1 trivialmente 1,0): **não há medida** |
-| Concordância juiz × humano (κ de Cohen) | ≥ 0,6 | ferramenta e teste `live` prontos (`tests/live/test_judge_calibration.py`); **não executado**; os rótulos vêm de perturbações sintéticas do corpus e precisam de revisão humana |
+| Concordância juiz × rótulo (κ de Cohen) | ≥ 0,6 | **medido em 2026-11-17 (Groq): κ = 0,59, acurácia 0,80, 54 casos, 0 falsos aceites, 11 falsos rejeites. Abaixo da meta por 0,01.** O erro está no lado seguro (o juiz nunca aprovou o que devia rejeitar; rejeitou 11 casos válidos). Os rótulos vêm de perturbações sintéticas do corpus e não tiveram revisão humana, então o κ mede concordância com rótulos escritos por mim, não com um analista |
 | Taxa de resolução no tier `small` | ≥ 70% | não medida |
 | Custo por relatório vs. "tudo no large" | ≤ baseline | não medido (sem telemetria de tokens/custo) |
 | Latência p95 do relatório | ≤ 90 s | não medida com modelos reais |
 | Qualidade da narrativa | revisão humana | não avaliada |
 
 ## Próximos passos
-1. Rodar `tests/live` com a chave Anthropic e registrar em [`provider-conformance.md`](provider-conformance.md).
-2. Revisão humana dos rótulos do juiz e medição do κ; medir o F1 de afirmações com o modelo pequeno.
+1. Rodar `tests/live` nos demais provedores e registrar em [`provider-conformance.md`](provider-conformance.md) (Groq já foi medido).
+2. Investigar os 11 falsos rejeites do juiz (prompt ou rubrica) e repetir; revisão humana dos rótulos; medir o F1 de afirmações com o modelo pequeno.
 3. Ampliar o corpus com manchetes reais coletadas (não escritas à mão).
