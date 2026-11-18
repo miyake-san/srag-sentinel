@@ -180,7 +180,7 @@ SELECT reason, article_id, run_id FROM quarantine ORDER BY created_at DESC LIMIT
 ## 9. Limitações
 
 - A ligação de entidades por dicionário não reconhece cidades (ex.: "Campinas" não vira SP) nem siglas isoladas.
-- A qualidade das afirmações depende do modelo pequeno e do juiz; **não foi medida com um modelo real** (o F1 de afirmações usa um extrator oráculo). O F1 de entidades (1,00) e o recall@12 (0,98 em 15 perguntas) vêm de um corpus de 30 manchetes escrito à mão ([avaliação](evaluation.md)).
+- A qualidade das afirmações depende do modelo pequeno e do juiz; **o F1 não foi medido** (usa um extrator oráculo); com o modelo real (Groq) a extração gravou 10 a 13 afirmações por execução com 0 a 1 artigo em quarentena, sem avaliação de correção. O F1 de entidades (1,00) e o recall@12 (0,98 em 15 perguntas) vêm de um corpus de 30 manchetes escrito à mão ([avaliação](evaluation.md)).
 - Sem vetores/embeddings: a recuperação é lexical (BM25 + léxico) e expansão por grafo.
 - A confiança por fonte é uma lista curta e manual.
 - Sem detecção de comunidades nem reconciliação entre fontes além do dicionário.

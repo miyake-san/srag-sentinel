@@ -47,12 +47,12 @@ SURREAL_ROOT_PASSWORD=<senha-descartavel> uv run python scripts/measure_impact.p
 4. Cronometra 20 execuções do relatório completo pelo `ReportService`, com **um modelo que sempre falha** (exercita todo o grafo menos o LLM) e **notícias vazias** (sem rede). Cada relatório sai degradado de propósito.
 5. Lê os eventos de auditoria, conta os da última execução e verifica a cadeia.
 
-**Ambiente:** máquina de desenvolvimento Windows, SurrealDB v4.0.1 em contêiner local, Python 3.14. Sem Pango, portanto **sem PDF**.
+**Ambiente:** máquina de desenvolvimento Windows, SurrealDB v4.0.1 em contêiner local, Python 3.14. Sem Pango, portanto **sem PDF** nestas medições (o PDF real foi gerado depois, pelo Compose: ver [`evaluation.md`](evaluation.md)).
 
 ## 4. O que não foi medido, e por quê
 
 - **Tempo economizado pelo analista.** Exigiria medir o processo manual real. Qualquer número aqui seria inventado. *Como medir:* estudo de tempo e movimento, com 3 a 5 analistas montando o mesmo boletim à mão, contra o tempo de revisar o relatório gerado.
-- **Latência e custo com LLM.** Exigem um provedor real (a meta era p95 ≤ 90 s). A chave compartilhada na conversa não foi usada por política de segurança; para medir, exporte `GROQ_API_KEY` (ou outro provedor) no ambiente e rode `uv run pytest -m live` e `scripts/measure_impact.py` com um modelo real.
+- **Latência e custo com LLM.** A latência do caminho completo foi **observada** em poucas execuções reais (Groq, pelo Compose): 63 s a 90 s por relatório, dominada pela busca de notícias (~50 s). Não há p95 estatístico (a meta era p95 ≤ 90 s, e a margem é estreita) e **o custo não foi medido** (não há telemetria de tokens nem de preço). A chave que foi colada na conversa não foi usada por política de segurança; as execuções reais usaram uma chave do próprio `.env` do usuário.
 - **Qualidade da narrativa** (revisão humana), **κ do juiz** e **F1 de afirmações**: ver [`evaluation.md`](evaluation.md).
 
 ## 5. Revisão crítica: a medição faz sentido?
@@ -68,4 +68,4 @@ SURREAL_ROOT_PASSWORD=<senha-descartavel> uv run python scripts/measure_impact.p
 7. **Faltam as medidas que mais importam ao negócio** (tempo do analista, custo, utilidade). Sem elas, "impacto" aqui significa **qualidade de engenharia e controle de risco**, não ganho operacional comprovado. Os ganhos de produtividade são uma hipótese razoável, não um resultado.
 8. **Ingestão de 12,4 s** depende de rede e do S3 público; não é garantia.
 
-**Veredito:** a medição é adequada como *evidência de viabilidade técnica, de minimização de dados e de baixo custo de orquestração*. Para falar de impacto de negócio, é preciso (a) rodar com um LLM real e medir o caminho feliz, (b) medir o processo manual de referência e (c) validar a qualidade do texto com especialistas. Esses três passos estão listados em [`evaluation.md`](evaluation.md) e na seção 4 acima.
+**Veredito:** a medição é adequada como *evidência de viabilidade técnica, de minimização de dados e de baixo custo de orquestração*. Para falar de impacto de negócio, é preciso (a) repetir o caminho feliz com um LLM real em muitas UFs e datas (hoje há só poucas execuções), (b) medir o processo manual de referência e (c) validar a qualidade do texto com especialistas. Esses três passos estão listados em [`evaluation.md`](evaluation.md) e na seção 4 acima.

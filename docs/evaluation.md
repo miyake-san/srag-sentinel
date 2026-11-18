@@ -22,7 +22,7 @@ Números produzidos nos testes deste repositório (2026-11-17). Onde o dado depe
 | Concordância juiz × rótulo (κ de Cohen) | ≥ 0,6 | **medido em 2026-11-17 (Groq): κ = 0,59, acurácia 0,80, 54 casos, 0 falsos aceites, 11 falsos rejeites. Abaixo da meta por 0,01.** O erro está no lado seguro (o juiz nunca aprovou o que devia rejeitar; rejeitou 11 casos válidos). Os rótulos vêm de perturbações sintéticas do corpus e não tiveram revisão humana, então o κ mede concordância com rótulos escritos por mim, não com um analista |
 | Taxa de resolução no tier `small` | ≥ 70% | não medida |
 | Custo por relatório vs. "tudo no large" | ≤ baseline | não medido (sem telemetria de tokens/custo) |
-| Latência p95 do relatório | ≤ 90 s | não medida com modelos reais |
+| Latência p95 do relatório | ≤ 90 s | observada em poucas execuções reais pelo Compose: 63 s a 90 s (a busca de notícias, ~50 s, domina); **sem p95 estatístico** |
 | Qualidade da narrativa | revisão humana | não avaliada |
 
 ## Primeira execução real de ponta a ponta (2026-11-17, Groq, escopo BR)

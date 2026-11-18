@@ -18,7 +18,7 @@ O sistema fala com os modelos por uma porta mínima (`StructuredModel`, ADR 0007
 - Todo o fluxo do relatório roda com modelos simulados.
 
 ## O que ainda não foi verificado
-- **Saída estruturada real por provedor.** Cada servidor trata esquemas e modos de forma diferente. O padrão é o do LangChain para cada classe; para a Anthropic usa-se `json_schema`. Servidores compatíveis com OpenAI (Unsloth, vLLM, llama.cpp) e modelos locais no Ollama variam muito: se falharem, tente `SRAG_LLM_STRUCTURED_METHOD=function_calling` ou `json_mode`. **Nada disso foi testado contra um serviço real.**
+- **Saída estruturada real por provedor.** Cada servidor trata esquemas e modos de forma diferente. O padrão é o do LangChain para cada classe; para a Anthropic usa-se `json_schema`. Servidores compatíveis com OpenAI (Unsloth, vLLM, llama.cpp) e modelos locais no Ollama variam muito: se falharem, tente `SRAG_LLM_STRUCTURED_METHOD=function_calling` ou `json_mode`. **Só o Groq foi testado contra um serviço real (2026-11-17): o padrão do LangChain (`function_calling`) falhou com `gpt-oss` e o padrão passou a `json_schema`; os demais provedores continuam sem teste real.**
 - Modelos pequenos/locais podem não seguir o esquema com confiabilidade; nesse caso a cadeia passa ao próximo provedor e, se todos falharem, o relatório sai degradado (narrativa omitida), nunca com texto não verificado.
 - Qualidade da narrativa, κ do juiz, F1 de afirmações, latência e custo (ver [`evaluation.md`](evaluation.md)).
 

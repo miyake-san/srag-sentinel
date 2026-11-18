@@ -1,0 +1,454 @@
+{
+  "schema_version": "1.0",
+  "report": {
+    "run_id": "db8b13f7-ae08-4867-b99c-4a50a84f2b36",
+    "generated_at": "2026-11-18T13:03:34.447218Z",
+    "status": "ok",
+    "degradations": [],
+    "metrics": {
+      "scope": "BR",
+      "as_of": "2026-11-12",
+      "window_days": 30,
+      "current_window": {
+        "start": "2026-10-14",
+        "end": "2026-11-12"
+      },
+      "previous_window": {
+        "start": "2026-09-14",
+        "end": "2026-10-13"
+      },
+      "cases_current": 15655,
+      "cases_previous": 17161,
+      "metrics": [
+        {
+          "metric_id": "M1",
+          "label": "Taxa de aumento de casos",
+          "value": -0.08775712371073947,
+          "numerator": -1506,
+          "denominator": 17161,
+          "window_start": "2026-10-14",
+          "window_end": "2026-11-12",
+          "is_proxy": false,
+          "completeness": null,
+          "caveats": []
+        },
+        {
+          "metric_id": "M2",
+          "label": "Taxa de mortalidade",
+          "value": 0.044416243654822336,
+          "numerator": 350,
+          "denominator": 7880,
+          "window_start": "2026-10-14",
+          "window_end": "2026-11-12",
+          "is_proxy": false,
+          "completeness": 0.5360544217687074,
+          "caveats": []
+        },
+        {
+          "metric_id": "M3",
+          "label": "Proporção de internações em UTI (proxy da ocupação de UTI)",
+          "value": 0.29566270532132316,
+          "numerator": 3906,
+          "denominator": 13211,
+          "window_start": "2026-10-14",
+          "window_end": "2026-11-12",
+          "is_proxy": true,
+          "completeness": 0.8987074829931972,
+          "caveats": [
+            "Proxy: proporção de casos hospitalizados que usaram UTI; não mede a ocupação de leitos (o dataset não traz capacidade)."
+          ]
+        },
+        {
+          "metric_id": "M4_COVID",
+          "label": "Vacinados contra COVID-19 entre casos de SRAG (proxy da taxa de vacinação)",
+          "value": 0.41653202352484975,
+          "numerator": 6445,
+          "denominator": 15473,
+          "window_start": "2026-10-14",
+          "window_end": "2026-11-12",
+          "is_proxy": true,
+          "completeness": 0.9883743213030981,
+          "caveats": [
+            "Proxy: vacinação entre os casos de SRAG, não cobertura vacinal da população."
+          ]
+        },
+        {
+          "metric_id": "M4_INFLUENZA",
+          "label": "Vacinados contra influenza entre casos de SRAG (proxy da taxa de vacinação)",
+          "value": 0.4033398424348529,
+          "numerator": 5990,
+          "denominator": 14851,
+          "window_start": "2026-10-14",
+          "window_end": "2026-11-12",
+          "is_proxy": true,
+          "completeness": 0.9486426061961035,
+          "caveats": [
+            "Proxy: vacinação entre os casos de SRAG, não cobertura vacinal da população."
+          ]
+        }
+      ],
+      "data_maturity": [
+        "Os 3 dias mais recentes (após 2026-11-12) foram excluídos da análise por defasagem de notificação; eles ainda estão incompletos.",
+        "Dados dos últimos 14 dias ainda em consolidação (atraso de notificação): valores recentes tendem a ser revisados."
+      ]
+    },
+    "series": {
+      "scope": "BR",
+      "as_of": "2026-11-12",
+      "daily": [
+        {
+          "day": "2026-10-14",
+          "cases": 627,
+          "moving_average_7d": 499.57142857142856
+        },
+        {
+          "day": "2026-10-15",
+          "cases": 730,
+          "moving_average_7d": 504.0
+        },
+        {
+          "day": "2026-10-16",
+          "cases": 580,
+          "moving_average_7d": 510.42857142857144
+        },
+        {
+          "day": "2026-10-17",
+          "cases": 245,
+          "moving_average_7d": 515.4285714285714
+        },
+        {
+          "day": "2026-10-18",
+          "cases": 214,
+          "moving_average_7d": 516.7142857142857
+        },
+        {
+          "day": "2026-10-19",
+          "cases": 824,
+          "moving_average_7d": 595.7142857142857
+        },
+        {
+          "day": "2026-10-20",
+          "cases": 673,
+          "moving_average_7d": 556.1428571428571
+        },
+        {
+          "day": "2026-10-21",
+          "cases": 611,
+          "moving_average_7d": 553.8571428571429
+        },
+        {
+          "day": "2026-10-22",
+          "cases": 624,
+          "moving_average_7d": 538.7142857142857
+        },
+        {
+          "day": "2026-10-23",
+          "cases": 657,
+          "moving_average_7d": 549.7142857142857
+        },
+        {
+          "day": "2026-10-24",
+          "cases": 244,
+          "moving_average_7d": 549.5714285714286
+        },
+        {
+          "day": "2026-10-25",
+          "cases": 218,
+          "moving_average_7d": 550.1428571428571
+        },
+        {
+          "day": "2026-10-26",
+          "cases": 886,
+          "moving_average_7d": 559.0
+        },
+        {
+          "day": "2026-10-27",
+          "cases": 656,
+          "moving_average_7d": 556.5714285714286
+        },
+        {
+          "day": "2026-10-28",
+          "cases": 628,
+          "moving_average_7d": 559.0
+        },
+        {
+          "day": "2026-10-29",
+          "cases": 606,
+          "moving_average_7d": 556.4285714285714
+        },
+        {
+          "day": "2026-10-30",
+          "cases": 478,
+          "moving_average_7d": 530.8571428571429
+        },
+        {
+          "day": "2026-10-31",
+          "cases": 204,
+          "moving_average_7d": 525.1428571428571
+        },
+        {
+          "day": "2026-11-01",
+          "cases": 196,
+          "moving_average_7d": 522.0
+        },
+        {
+          "day": "2026-11-02",
+          "cases": 278,
+          "moving_average_7d": 435.14285714285717
+        },
+        {
+          "day": "2026-11-03",
+          "cases": 929,
+          "moving_average_7d": 474.14285714285717
+        },
+        {
+          "day": "2026-11-04",
+          "cases": 640,
+          "moving_average_7d": 475.85714285714283
+        },
+        {
+          "day": "2026-11-05",
+          "cases": 605,
+          "moving_average_7d": 475.7142857142857
+        },
+        {
+          "day": "2026-11-06",
+          "cases": 570,
+          "moving_average_7d": 488.85714285714283
+        },
+        {
+          "day": "2026-11-07",
+          "cases": 209,
+          "moving_average_7d": 489.57142857142856
+        },
+        {
+          "day": "2026-11-08",
+          "cases": 200,
+          "moving_average_7d": 490.14285714285717
+        },
+        {
+          "day": "2026-11-09",
+          "cases": 769,
+          "moving_average_7d": 560.2857142857143
+        },
+        {
+          "day": "2026-11-10",
+          "cases": 556,
+          "moving_average_7d": 507.0
+        },
+        {
+          "day": "2026-11-11",
+          "cases": 507,
+          "moving_average_7d": 488.0
+        },
+        {
+          "day": "2026-11-12",
+          "cases": 491,
+          "moving_average_7d": 471.7142857142857
+        }
+      ],
+      "monthly": [
+        {
+          "month": "2025-12",
+          "cases": 18109,
+          "is_partial": false
+        },
+        {
+          "month": "2026-01",
+          "cases": 12895,
+          "is_partial": false
+        },
+        {
+          "month": "2026-02",
+          "cases": 14647,
+          "is_partial": false
+        },
+        {
+          "month": "2026-03",
+          "cases": 25896,
+          "is_partial": false
+        },
+        {
+          "month": "2026-04",
+          "cases": 30909,
+          "is_partial": false
+        },
+        {
+          "month": "2026-05",
+          "cases": 36986,
+          "is_partial": false
+        },
+        {
+          "month": "2026-06",
+          "cases": 39295,
+          "is_partial": false
+        },
+        {
+          "month": "2026-07",
+          "cases": 30957,
+          "is_partial": false
+        },
+        {
+          "month": "2026-08",
+          "cases": 21003,
+          "is_partial": false
+        },
+        {
+          "month": "2026-09",
+          "cases": 17896,
+          "is_partial": false
+        },
+        {
+          "month": "2026-10",
+          "cases": 16471,
+          "is_partial": false
+        },
+        {
+          "month": "2026-11",
+          "cases": 5950,
+          "is_partial": true
+        }
+      ]
+    },
+    "narrative": {
+      "summary": "Nos últimos 30 dias, a taxa de aumento de casos de SRAG caiu -8,8% (1506 casos a menos). A mortalidade ficou em 4,4% (350 óbitos). Internações em UTI representaram 29,6% das internações. Entre os casos, 41,7% estavam vacinados contra COVID-19. Dados recentes apresentam defasagem e consolidação, devendo ser interpretados com cautela.",
+      "metric_commentary": [
+        {
+          "text": "A taxa de aumento de casos foi de -8,8%, refletindo a redução de 1.506 casos em relação ao período anterior.",
+          "metric_refs": [
+            "M1"
+          ],
+          "article_refs": [],
+          "evidence_refs": []
+        },
+        {
+          "text": "A taxa de mortalidade registrou 4,4%, correspondendo a 350 óbitos entre 7.880 casos avaliados (completude 53,6%).",
+          "metric_refs": [
+            "M2"
+          ],
+          "article_refs": [],
+          "evidence_refs": []
+        },
+        {
+          "text": "A proporção de internações que necessitaram de UTI foi de 29,6% (3.906 de 13.211 internações), com completude de 89,9%.",
+          "metric_refs": [
+            "M3"
+          ],
+          "article_refs": [],
+          "evidence_refs": []
+        },
+        {
+          "text": "Entre os casos de SRAG, 41,7% estavam vacinados contra COVID-19 (6.445 de 15.473), completude de 98,8%.",
+          "metric_refs": [
+            "M4_COVID"
+          ],
+          "article_refs": [],
+          "evidence_refs": []
+        }
+      ],
+      "news_context": [
+        {
+          "text": "Segundo a notícia A8, as mortes por Covid-19 sofreram queda de 68,8% em 2026.",
+          "metric_refs": [],
+          "article_refs": [
+            "A8"
+          ],
+          "evidence_refs": []
+        }
+      ],
+      "limitations": [
+        "M3 é um proxy da ocupação de UTI.",
+        "M4_COVID é um proxy da taxa de vacinação entre casos de SRAG.",
+        "Os 3 dias mais recentes foram excluídos por defasagem de notificação.",
+        "Dados dos últimos 14 dias ainda em consolidação, podendo ser revisados."
+      ]
+    },
+    "articles": [
+      {
+        "ref": "A1",
+        "title": "Vacinação em dia e medidas de proteção ajudam a reduzir riscos de doenças respiratórias",
+        "source": "Prefeitura de Jundiaí",
+        "domain": "jundiai.sp.gov.br",
+        "url": "https://news.google.com/rss/articles/CBMizwFBVV95cUxQMDZHbUEtQzRpc1VmbVQtaWNVelZ6LVlQbmVWZVFxdUNzMXRCdGJtY183bHMxLU1OTE1YdEluZFpYZHB5a0VqVDZhcnBRU1NGLTBqa1pfcXR0NVkxeHJOYkFmLWNCS2prYU03NTYyTU5JOTZFMEZzOEx0Zl83STVyMzZCX1VNU0V4V05tQjJsalBJLXlDTHRwb3M2bzVsUUpiWU5ZMjNYUHlTRkFjbjBILWZia2RsQVVHZjNUdGEyd2NvanBkMTJLcjhycjZSWVU?oc=5",
+        "published_at": "2026-11-16T20:00:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A2",
+        "title": "12/11/2026 - Vacina contra a Covid-19 faz parte do calendário básico de vacinação; veja quem pode se imunizar",
+        "source": "Secretaria de Estado da Saúde SP",
+        "domain": "saude.sp.gov.br",
+        "url": "https://news.google.com/rss/articles/CBMigwJBVV95cUxOSkpmajh4bFpWUkU4Y3ZlNElrekZkcExHLVdUcnRJb0Rva1puTE1PRk9EUHNCWkZuYWM1S3ppN2hRU0RXdUN1am1zaVJjRmdTZVpPYmpRcFpzOW1NaGlJblBrQlVsbzhLWi1aRllndVhkalFWUU9iM0ZRM0ZibUpSZEpwSy1iR3Jqc3d5a1VyaV9qeEZVQXZCZ3l2cEthV01SYU9VZ1dhYjZSalRMd0llb25xdEVRdEV2NE1kYlExRUFTY3RndkdLbW5VNVptZW0yamxuVGpWVUhOSUhabWlhSWdjZU9KeWdXdzVrVUVLZm9EdkxqV0tmbGYxamVzWWNjQzlz?oc=5",
+        "published_at": "2026-11-12T08:00:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A3",
+        "title": "InfoGripe: cresce o número de casos de SRAG por metapneumovírus, rinovírus e Covid-19",
+        "source": "Agência Fiocruz de Notícias",
+        "domain": "agencia.fiocruz.br",
+        "url": "https://news.google.com/rss/articles/CBMirwFBVV95cUxOQk9SZmZhdTJfeDg3SXlRc21McFBSRHdGWEtTVjBib0wwTm43RnhTODY4YUpfWGlfaHI3MjZTdHRqNXhvclZXMG5xUHB6LUI4TXhoX205Q25DVV9vVW9Bc3p3anZTOWJna0lkSnc3TnE4XzdQMDNzZlJFS2dVTThENUV0QUFNUmcwNGRPM19YN3NDTGZrSnZBd2dsRGJDeHA5alRHUTNObUNhWjdhbEEw?oc=5",
+        "published_at": "2026-11-05T08:00:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A4",
+        "title": "Fiocruz: aumentam casos de síndrome respiratória aguda por covid-19",
+        "source": "Agência Brasil",
+        "domain": "agenciabrasil.ebc.com.br",
+        "url": "https://news.google.com/rss/articles/CBMivgFBVV95cUxNZy1seFVIRUdYeHNfbWg3SjVleXhPZEp0MWxxeUdzV3FFRV9SSDdSOFR1Q0l6bWtvd3pneEJHbk9Wa3hwTFZ3TVB1UmVPMEw2MlVYMEEtbVVsd05EM0lGdDZLVThqTjU0V29oUkM4a3B5U1VpWkpQVjlfUkFrR0Z5a1JBdTJla1NSTU5acDRoN1lvSEkzSC01ZGU2UjF6SDJrNjBGWFZHWmprVERBYW1idFd5MWxGS1hidlkwYkp3?oc=5",
+        "published_at": "2026-11-12T17:43:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A5",
+        "title": "Covid-19: casos e óbitos seguem em queda no Brasil, informa ministério",
+        "source": "Agência Gov",
+        "domain": "agenciagov.ebc.com.br",
+        "url": "https://news.google.com/rss/articles/CBMimwFBVV95cUxQYjhxUWhmeHRpcmpyeVZBUzNBSGl3MnNSdHJZWTJPcjdjQmJyazF4T09ZQWpQRmloQVVPR19yTlpkSHVtYUhtRjFpcUV6R1luYWxrNmNxWHpQR2o5YVlDeEpqMUNtMUxzSElVVHZ0S2JVQXlpbnRkOHZ2c25ISW9KMWIwVzY2b1I1Z2IxWkVkUm1zYU5OaEF4LUgxdw?oc=5",
+        "published_at": "2026-11-10T21:21:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A6",
+        "title": "Covid-19: quem precisa tomar a dose semestral da vacina?",
+        "source": "Estadão",
+        "domain": "www.estadao.com.br",
+        "url": "https://news.google.com/rss/articles/CBMisgFBVV95cUxQSHVlYmVydExGOE5NLTA3U1Z0VDYwam9mQ1EwNTlFQktsb2xvbUt4V0Q4RWdpR1dLRmoxMVdrd3ExNnhFZXRIbHZsZXVTZ0Z0aXRwd1ViVFJRaVhxLWVlX0E5RXlrdktVVFZPQ2pWdWVVRnZ4RFlZeTZKMGNjX2xHVWYwUmEzLWE1dF93cEVLVl9nOW4xaVV5Y1BHd3VpMTQwVkpqVjM2eVE2V0xrVkI4YzF30gG3AUFVX3lxTFBQQXJDOWxrRmZuU1ZyVktPM21HTW5udXlMSXNuNXRybUZaNDR2X2RDWFc0VWhFZFZnVm5idkRhc1hxb1ludmpXOE9KQXFjTTV1ZGk3aExlZWo1ZllabUh5XzhIOVM0TUQ5RkxoT0J4cndHT1ZGQXlhRklRWkVLNHlKVXFQMWdaZjl5dXI1TjdSRjFWTnpqSVZwWVAtRkxLcDVpa0xreng1QjJSX1lzWS0yc1NGUHJ6bw?oc=5",
+        "published_at": "2026-11-17T14:30:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A7",
+        "title": "Casos de Covid voltam a subir no RS, mas internações seguem em queda; saiba quem pode vacinar",
+        "source": "G1",
+        "domain": "g1.globo.com",
+        "url": "https://news.google.com/rss/articles/CBMiwAFBVV95cUxPNVI2REwtdUdIUW85WDlVdFlKZ1ZLYVBINnF4LTE3M1VsdVdxMWJFbUh1MDlNeVdPeHpnbkFnQlRvQ0xWdTZrcXY4N29oem1KMUcyYXA0bXhwdmtXOGFqNEJpaG5EWFFUMXFWX2R5ZFRsUlAyWFhPa0FlVFVLRS1wbXo2ZTVFakphSlpfMjUtakxIbGdOWUtrblNaTjVybFplbnBLVmlsZVhaLVVabkxCX2IyNkF5cTFmTGRYUzlpNjjSAc8BQVVfeXFMUEVOaVlFUHpud1JEN3ZVaThrNDdBMEZENDFFd05IOGxNTjdYSXlRUER1NEl2NTI3UVpYRTl2RWNkTS0xWXY0dlR2b0pRdWttSEUzbjRnTzMtTHpHaEl5MTlRRUxjeUZ1Y29ORld4bnNJcTlIN3kyTWRQTjVocGx6TWdkaUI0Ty1VOFBmSG14VXZTTnJDVm9wVjIyM1ZiV2oyaTBYVjNEQVRHeHNEa05fcGZndmMxbHJhMDNodlVnaHV6cTRQTGh0UUd6TzFqcGsw?oc=5",
+        "published_at": "2026-11-13T04:00:00Z",
+        "provider": "google_news"
+      },
+      {
+        "ref": "A8",
+        "title": "Casos e mortes por Covid-19 sofrem queda de 68,8% em 2026",
+        "source": "CNN Brasil",
+        "domain": "www.cnnbrasil.com.br",
+        "url": "https://news.google.com/rss/articles/CBMilgFBVV95cUxQV2tOYlB1NGl3T1lBU25JNEFHb3h3amRVZ28yYTUxa1F3d3ZCcnp5YzRKbEJ4NHFxY0MzNU9QdmpodEFXZ0Q3elpjTjFoT2xGRkl1Vlg2TF9fdW5WUVE0U3pVdDh2UV9QV1M1czdHS2N5eFYwaUs2VHNLT1NjdmZtaUVQZTdtcWN2YjVIb0NVbzl1Vk1qTmc?oc=5",
+        "published_at": "2026-11-10T08:00:00Z",
+        "provider": "google_news"
+      }
+    ],
+    "evidence": [],
+    "models": {
+      "large": "groq:openai/gpt-oss-120b",
+      "small": "groq:openai/gpt-oss-20b"
+    },
+    "prompts": [
+      "news.plan_queries@1",
+      "report.synthesize@3"
+    ]
+  },
+  "artifacts": {
+    "html_sha256": "b936440498443809d5c2fa8fa0f17193973d42accdd460952ee1ce786fa8e57d",
+    "pdf_sha256": "8802437714ff670c898a0841b8a6f56129a12bbd798aace5b2fdaaeef9c14acb"
+  }
+}

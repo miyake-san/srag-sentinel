@@ -4,7 +4,7 @@ Sistema agêntico que gera um **relatório de Síndrome Respiratória Aguda Grav
 
 O relatório traz 4 métricas (aumento de casos, mortalidade, uso de UTI e vacinação) e 2 gráficos (casos diários nos últimos 30 dias e mensais nos últimos 12 meses), em **HTML, JSON e PDF**, com trilha de auditoria verificável.
 
-> **Estado honesto do projeto:** tudo roda e é testado com modelos simulados e contra um SurrealDB real. **Nenhum LLM real foi exercitado** (sem chave neste ambiente): a qualidade da narrativa, o juiz e a extração de afirmações estão sem medida. Veja [Limitações](#limitações-e-model-card) e [`docs/evaluation.md`](docs/evaluation.md).
+> **Estado honesto do projeto:** a suíte (721 testes) roda com modelos simulados e contra um SurrealDB real, e o fluxo completo foi executado **com dados do OpenDATASUS, notícias e LLM reais** (Groq, `gpt-oss-120b` e `gpt-oss-20b`), inclusive pelo Compose com API autenticada e PDF. A amostra é **pequena** (poucas execuções, escopo BR): o G3 aceitou 3 de 4 narrativas, o juiz teve κ = 0,59 (meta 0,6) e o relatório levou ~80 s para um prazo de 90 s. Um relatório real está em [`docs/example-report/`](docs/example-report/). Veja [Limitações](#limitações-e-model-card) e [`docs/evaluation.md`](docs/evaluation.md).
 
 ## Documentação
 
@@ -13,6 +13,7 @@ O relatório traz 4 métricas (aumento de casos, mortalidade, uso de UTI e vacin
 | [`docs/usage-guide.md`](docs/usage-guide.md) | guia de uso com exemplos (CLI, API, provedores, auditoria) |
 | [`docs/architecture-overview.md`](docs/architecture-overview.md) | cada componente, onde está no código e os ADRs/specs/testes correspondentes |
 | [`docs/architecture/architecture.pdf`](docs/architecture/architecture.pdf) | diagramas conceituais (PDF entregável) |
+| [`docs/example-report/`](docs/example-report/) | relatório real gerado pelo Compose (`report.pdf`, `report.html`, `report.json`) |
 | [`docs/adr/`](docs/adr/) | decisões de arquitetura (ADRs 0001–0022); validação de segurança em [`docs/security-validation.md`](docs/security-validation.md) |
 | [`docs/ontology-and-knowledge-graph.md`](docs/ontology-and-knowledge-graph.md) | ontologia, construção e recuperação do grafo de conhecimento (GraphRAG) |
 | [`docs/surrealdb.md`](docs/surrealdb.md) | guia do SurrealDB: databases e namespaces, recursos, segurança, armadilhas e material de estudo |
@@ -173,7 +174,7 @@ Não implementado, mas previsto: segredos em um gerenciador (não `.env`), TLS e
 
 ## Limitações e model card
 
-- **Narrativa não avaliada com LLM real.** O G3 garante que os números vêm das métricas e que as referências existem; não garante que o texto seja bom, nem que as notícias sejam verdadeiras.
+- **Narrativa avaliada só em poucas execuções reais, sem revisão de especialistas.** O G3 garante que os números vêm das métricas e que as referências existem; não garante que o texto seja bom, nem que as notícias sejam verdadeiras.
 - **UTI e vacinação são proxies.** Não representam ocupação de leitos nem cobertura vacinal; usam só registros com o campo preenchido.
 - **Dado em consolidação.** A notificação atrasa; por isso há `settle_days` e avisos de maturidade, e os números recentes podem mudar.
 - **Notícias.** Fontes públicas e instáveis; a confiança por domínio é uma lista curta e manual; o relatório lista as fontes mas não verifica os fatos.
