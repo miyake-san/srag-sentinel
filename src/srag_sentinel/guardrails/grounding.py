@@ -22,6 +22,8 @@ EPSILON = 1e-9
 CORE_METRICS = ("M1", "M2", "M3")
 VACCINATION_METRICS = ("M4_COVID", "M4_INFLUENZA")
 
+# Models write COVID-19 with a non-breaking hyphen or a minus sign; read all of them as "-".
+_HYPHENS = {0x2010: "-", 0x2011: "-", 0x2012: "-", 0x2013: "-", 0x2212: "-"}
 _SEP = re.escape("." + chr(0xA0) + " ")  # thousands separators: dot, no-break space, space
 _NUMBER = re.compile(rf"\d{{1,3}}(?:[{_SEP}]\d{{3}})+(?:,\d+)?|\d+(?:[.,]\d+)?")
 # Disease, pathogen and outlet names that contain digits are labels, not quantities.
@@ -75,7 +77,8 @@ class Verification:
 
 def parse_numbers(text: str) -> list[float]:
     """Extract numbers (Brazilian formatting: ``15.655``, ``8,8``) from ``text``."""
-    without_labels = _NAMES_WITH_DIGITS.sub(" ", _METRIC_TOKEN.sub(" ", text))
+    plain = text.translate(_HYPHENS)
+    without_labels = _NAMES_WITH_DIGITS.sub(" ", _METRIC_TOKEN.sub(" ", plain))
     without_dates = _BR_DATE.sub(" ", _ISO_DATE.sub(" ", without_labels))
     return [_to_float(token) for token in _NUMBER.findall(without_dates)]
 
@@ -278,7 +281,11 @@ class _Checker:
             self.add("G3.coverage", "metric_commentary", "no comment on vaccination (M4)")
         text = " ".join(self.narrative.limitations).lower()
         if any(m.is_proxy for m in self.payload.metrics) and not _PROXY_WORD.search(text):
-            self.add("G3.limitations", "limitations", "proxy metrics must be declared as proxies")
+            self.add(
+                "G3.limitations",
+                "limitations",
+                "write the word 'proxy' in limitations for M3 and M4 (for example 'M3 é um proxy')",
+            )
         if self.payload.data_maturity and not re.search(r"defasagem|consolida|notifica", text):
             self.add(
                 "G3.limitations",

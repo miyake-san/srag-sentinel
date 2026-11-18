@@ -93,6 +93,9 @@ def check(narrative: Narrative):
     return verify_narrative(narrative, PAYLOAD, article_texts=ARTICLES, evidence_texts=EVIDENCE)
 
 
+HYPHEN, NB_HYPHEN, MINUS = chr(0x2010), chr(0x2011), chr(0x2212)
+
+
 def rules(narrative: Narrative) -> set[str]:
     return {v.rule_id for v in check(narrative).violations}
 
@@ -117,6 +120,8 @@ def test_a_fully_grounded_narrative_passes_with_a_single_allow_verdict() -> None
         ("M1 e M4_COVID somam 3 casos em 2026-11-12 e 12/11/2026", [3.0]),
         ("Segundo a Agência Gov (A1) e a CNN Brasil (A2), casos caem; veja E3", []),
         ("A12 e 12 casos", [12.0]),
+        (f"COVID{NB_HYPHEN}19 e 5 casos", [5.0]),  # seen with a real model
+        (f"COVID{MINUS}19 e SARS{HYPHEN}CoV{NB_HYPHEN}2 em 7 dias", [7.0]),
     ],
 )
 def test_brazilian_number_parsing(text: str, numbers: list[float]) -> None:

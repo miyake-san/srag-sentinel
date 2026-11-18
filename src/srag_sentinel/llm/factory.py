@@ -109,10 +109,15 @@ def _options(
 
 
 def _structured_method(settings: Settings, provider: Provider) -> str | None:
-    """Anthropic needs ``json_schema`` (forced tool calling is unsupported on recent models)."""
+    """Anthropic and Groq use ``json_schema``.
+
+    Anthropic does not support forced tool calling on recent models. On Groq the default tool
+    calling made ``gpt-oss`` answer with a call to a tool named after the task, which the API
+    rejects (400 ``tool_use_failed``), although the claims inside it were right.
+    """
     if settings.llm_structured_method:
         return settings.llm_structured_method
-    return "json_schema" if provider == "anthropic" else None
+    return "json_schema" if provider in {"anthropic", "groq"} else None
 
 
 def build_structured_model(

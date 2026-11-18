@@ -210,6 +210,18 @@ def test_the_structured_output_method_can_be_overridden() -> None:
     assert model._method == "function_calling"  # type: ignore[attr-defined]
 
 
+def test_groq_defaults_to_json_schema_but_can_be_overridden() -> None:
+    default = build_structured_model(settings(groq_api_key="k"), provider="groq", model="m")
+    forced = build_structured_model(
+        settings(groq_api_key="k", llm_structured_method="function_calling"),
+        provider="groq",
+        model="m",
+    )
+
+    assert default._method == "json_schema"  # type: ignore[attr-defined]
+    assert forced._method == "function_calling"  # type: ignore[attr-defined]
+
+
 def test_the_requested_priority_order_is_the_default() -> None:
     assert DEFAULT_PRIORITY == (
         "openrouter",
