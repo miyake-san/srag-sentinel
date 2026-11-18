@@ -46,7 +46,13 @@ Imagem construída com `LLM_EXTRAS="--extra groq"`, stack completo no ar (Surrea
 | `POST /v1/reports` (BR, 30 dias) com chave | **200, status `ok`, sem degradações**; HTML (50 KB), JSON (13 KB) e **PDF real** (42 KB, `%PDF-1.7`) |
 | Cabeçalhos da resposta | `nosniff`, `no-store`, `no-referrer` presentes |
 
-Também confirmado: com `SRAG_API_KEYS` vazio o contêiner **recusou subir** em `prod` (o perímetro funcionou como projetado). Ainda não verificado: os painéis do Grafana e os traces no Jaeger com dados (o stack está no ar e recebeu uma execução, mas não os inspecionei), e a taxa de aceite do G3 em várias UFs.
+Também confirmado: com `SRAG_API_KEYS` vazio o contêiner **recusou subir** em `prod` (o perímetro funcionou como projetado). 
+### Telemetria com dados reais (2026-11-18)
+- **Prometheus** recebeu as séries `srag_*` do Collector: `srag_report_total{status="ok"}` = 1; `srag_api_rejections_total{reason="unauthorized"}` = 3 (exatamente as 3 chamadas sem chave ou com chave errada); `srag_router_calls_total` por tarefa e camada; `srag_node_duration_seconds` por nó.
+- **Jaeger** tem o serviço `srag-sentinel` e um trace do `POST /v1/reports` com o span `report.run` (67,8 s) e um `agent.node` por nó, com só `srag.node` e `srag.run_id` como atributos de negócio (sem conteúdo).
+- **Gargalo:** `collect_news` levou 51,8 s dos 67,8 s (busca de notícias); a síntese, 5,5 s; o PDF, 6 s. O total ficou abaixo da meta de 90 s, mas a coleta de notícias domina.
+- **Achado:** nesta execução não havia camada `small` no `.env`, então tudo rodou no modelo grande: a síntese precisou de 2 tentativas (G3 pediu retry) e a extração de afirmações do grafo esgotou (`kg.extract_claims exhausted` = 3), por isso o relatório saiu sem evidências do grafo. Configurar a camada pequena é necessário para o grafo funcionar dentro do orçamento.
+- **Não verificado:** os painéis do Grafana (a versão 11.5.2 responde e está saudável, mas o login com senha é feito por você) e a taxa de aceite do G3 em várias UFs.
 
 ## Próximos passos
 1. Rodar `tests/live` nos demais provedores e registrar em [`provider-conformance.md`](provider-conformance.md) (Groq já foi medido).
