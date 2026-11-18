@@ -54,6 +54,17 @@ Também confirmado: com `SRAG_API_KEYS` vazio o contêiner **recusou subir** em 
 - **Achado:** nesta execução não havia camada `small` no `.env`, então tudo rodou no modelo grande: a síntese precisou de 2 tentativas (G3 pediu retry) e a extração de afirmações do grafo esgotou (`kg.extract_claims exhausted` = 3), por isso o relatório saiu sem evidências do grafo. Configurar a camada pequena é necessário para o grafo funcionar dentro do orçamento.
 - **Não verificado:** os painéis do Grafana (a versão 11.5.2 responde e está saudável, mas o login com senha é feito por você) e a taxa de aceite do G3 em várias UFs.
 
+### Repetição com a camada pequena (2026-11-18) e três defeitos encontrados
+Com `SRAG_ROUTER_SMALL_*` definido, repeti o fluxo e a extração do grafo continuou falhando; a investigação com o erro real do provedor achou três causas, todas corrigidas com teste:
+
+1. **Groq + `function_calling`:** o `gpt-oss` respondia chamando uma "ferramenta" com o nome da tarefa (`kg.extract_claims`), e a API devolvia 400 `tool_use_failed`, embora as afirmações dentro da chamada estivessem corretas. O adaptador só registrava `model_error`, o que escondia a causa. Agora o padrão do Groq é `json_schema`. Resultado: 13 afirmações gravadas, 0 em quarentena (antes: 6 de 6 em quarentena).
+2. **Hífen especial:** o modelo escreve "COVID‑19" com hífen não separável (U+2011) e o G3 lia o "19" como quantidade sem respaldo. Hífens Unicode e o sinal de menos passam a ser normalizados antes de extrair números.
+3. **Palavra "proxy":** o modelo descrevia o proxy sem escrever "proxy" e o G3 reprovava. O prompt de síntese passou à versão 3 pedindo a palavra literalmente e o feedback do retry ficou explícito.
+
+**Taxa de aceite do G3 (execuções reais, escopo BR, Groq `gpt-oss-120b`):** antes das correções 2 e 3, 1 de 4 aceitas; depois, **3 de 4 aceitas** (todas na 1ª tentativa). A falha restante foi um bloqueio legítimo: o resumo citou números de notícia (76% e 68,8%) que não vêm das métricas, e uma notícia foi citada sem atribuição ("segundo ..."). É amostra pequena (n = 4 por bateria), não estatística.
+
+**Execução final pelo Compose:** `status ok`, sem degradações, narrativa aceita, PDF gerado, **79,6 s**. O prazo do G4 é 90 s e a busca de notícias (~50 s) domina, então a margem é estreita e uma fonte lenta pode degradar o relatório para só métricas. O grafo devolveu 12 evidências na recuperação, mas o relatório lista apenas as **citadas** pela narrativa, e o modelo não citou nenhuma, por isso `evidence` aparece vazio no JSON.
+
 ## Próximos passos
 1. Rodar `tests/live` nos demais provedores e registrar em [`provider-conformance.md`](provider-conformance.md) (Groq já foi medido).
 2. Investigar os 11 falsos rejeites do juiz (prompt ou rubrica) e repetir; revisão humana dos rótulos; medir o F1 de afirmações com o modelo pequeno.
