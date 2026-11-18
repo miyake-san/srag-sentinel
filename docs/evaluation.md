@@ -34,6 +34,20 @@ Dados reais (585.334 linhas ingeridas), notícias reais e modelos reais (grande:
 - **Resultado após as correções:** nova execução real, narrativa **aceita pelo G3** na 1ª tentativa; restou só `PDF_UNAVAILABLE` (Pango ausente neste Windows). Um defeito de redação aparece no texto aceito ("caiu -8,8%", dupla negação) e não é detectado por regra: ver a limitação de fidelidade qualitativa (SEC-06).
 - **O que isso mede:** o G3 aceita uma narrativa real e correta e rejeita as com problema; a taxa de aceite é **1 de 1 execução após as correções**, o que **não é estatística**. Falta uma amostra maior (várias UFs e datas).
 
+## Stack Compose com autenticação (2026-11-18)
+Imagem construída com `LLM_EXTRAS="--extra groq"`, stack completo no ar (SurrealDB, API, Collector, Jaeger, Prometheus, Grafana, todos saudáveis) e chamadas feitas por um script contra `127.0.0.1:8080`:
+
+| Chamada | Resultado |
+|---|---|
+| `GET /healthz` sem chave | 200 |
+| `POST /v1/reports` sem chave | 401 |
+| `POST /v1/reports` com chave errada | 401, `application/problem+json` |
+| `GET /v1/audit/{id}` sem chave | 401 |
+| `POST /v1/reports` (BR, 30 dias) com chave | **200, status `ok`, sem degradações**; HTML (50 KB), JSON (13 KB) e **PDF real** (42 KB, `%PDF-1.7`) |
+| Cabeçalhos da resposta | `nosniff`, `no-store`, `no-referrer` presentes |
+
+Também confirmado: com `SRAG_API_KEYS` vazio o contêiner **recusou subir** em `prod` (o perímetro funcionou como projetado). Ainda não verificado: os painéis do Grafana e os traces no Jaeger com dados (o stack está no ar e recebeu uma execução, mas não os inspecionei), e a taxa de aceite do G3 em várias UFs.
+
 ## Próximos passos
 1. Rodar `tests/live` nos demais provedores e registrar em [`provider-conformance.md`](provider-conformance.md) (Groq já foi medido).
 2. Investigar os 11 falsos rejeites do juiz (prompt ou rubrica) e repetir; revisão humana dos rótulos; medir o F1 de afirmações com o modelo pequeno.
