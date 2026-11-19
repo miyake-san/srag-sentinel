@@ -79,21 +79,27 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    start(["POST /v1/reports"]) --> n1["validate_request<br/>G1"]
-    n1 --> n2["fetch_metrics<br/>tool → SurrealDB data"]
-    n2 --> n3["plan_news_research<br/>LLM (tier small)"]
-    n3 --> n4["collect_news<br/>tool → RSS / GDELT"]
-    n4 --> g2{{"G2<br/>sanitiza · filtra · PII"}}
-    g2 --> n5["build_kg<br/>extrai entidades e afirmações<br/>(router small + judge)"]
-    n5 --> n6["retrieve_context<br/>GraphRAG: FTS + travessia + resumos regionais"]
-    n6 --> n7["synthesize<br/>LLM (tier large)"]
-    n7 --> g3{{"G3 verify_narrative<br/>números · evidências · política"}}
-    g3 -- "violações (1 retry)" --> n7
-    g3 -- "aprovado" --> n8["render_report<br/>HTML · JSON · PDF"]
-    g3 -- "reprovado 2x" --> deg["relatório degradado<br/>só métricas e gráficos"]
-    deg --> n8
-    n8 --> n9["finalize<br/>sela a auditoria"]
-    n9 --> fim(["relatório + run_id"])
+    subgraph linha1["Entrada, métricas e notícias"]
+        direction LR
+        start(["POST /v1/reports"]) --> n1["validate_request<br/>G1"]
+        n1 --> n2["fetch_metrics<br/>tool → SurrealDB data"]
+        n2 --> n3["plan_news_research<br/>LLM (tier small)"]
+        n3 --> n4["collect_news<br/>tool → RSS / GDELT"]
+        n4 --> g2{{"G2<br/>sanitiza · filtra · PII"}}
+    end
+    subgraph linha2["Grafo de conhecimento, síntese e verificação"]
+        direction LR
+        n5["build_kg<br/>extrai entidades e afirmações<br/>(router small + judge)"] --> n6["retrieve_context<br/>GraphRAG: FTS + travessia<br/>+ resumos regionais"]
+        n6 --> n7["synthesize<br/>LLM (tier large)"]
+        n7 --> g3{{"G3 verify_narrative<br/>números · evidências · política"}}
+        g3 -- "violações (1 retry)" --> n7
+        g3 -- "aprovado" --> n8["render_report<br/>HTML · JSON · PDF"]
+        g3 -- "reprovado 2x" --> deg["relatório degradado<br/>só métricas e gráficos"]
+        deg --> n8
+        n8 --> n9["finalize<br/>sela a auditoria"]
+        n9 --> fim(["relatório + run_id"])
+    end
+    linha1 --> linha2
 
     classDef llm fill:#e8f0fe,stroke:#4a6fd1;
     classDef guard fill:#fff4e5,stroke:#d98a00;

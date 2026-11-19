@@ -25,6 +25,18 @@ MERMAID_IMAGE = "minlag/mermaid-cli:latest"
 BLOCK = re.compile(r"```mermaid\n(.*?)```", re.DOTALL)
 HEADING = re.compile(r"^#{2,3} (.+)$", re.MULTILINE)
 PUPPETEER = '{"executablePath": "/usr/bin/chromium", "args": ["--no-sandbox"]}'
+# WeasyPrint does not draw <foreignObject>, which is where Mermaid puts HTML labels by default, so
+# every label would be blank in the PDF. Plain SVG <text> labels render everywhere.
+# The font is pinned to DejaVu Sans, which both the mermaid-cli and the WeasyPrint images ship, so
+# Mermaid sizes each box with the same glyph widths the PDF later draws (otherwise words overflow).
+FONT = "DejaVu Sans"
+MERMAID_CONFIG = (
+    '{"htmlLabels": false, "flowchart": {"htmlLabels": false, "wrappingWidth": 600}, '
+    '"theme": "default", '
+    f'"fontFamily": "{FONT}", '
+    '"themeVariables": {"primaryTextColor": "#111111", "textColor": "#111111", '
+    f'"lineColor": "#222222", "fontFamily": "{FONT}"}}}}'
+)
 
 
 def sources(markdown: str) -> list[str]:
@@ -50,6 +62,7 @@ def render_svg(source: str, work: Path, index: int) -> str:
     """Render one diagram to SVG with the mermaid-cli container."""
     (work / f"d{index}.mmd").write_text(source, encoding="utf-8")
     (work / "puppeteer.json").write_text(PUPPETEER, encoding="utf-8")
+    (work / "mermaid.json").write_text(MERMAID_CONFIG, encoding="utf-8")
     subprocess.run(
         [
             "docker",
@@ -60,6 +73,8 @@ def render_svg(source: str, work: Path, index: int) -> str:
             MERMAID_IMAGE,
             "-p",
             "/data/puppeteer.json",
+            "-c",
+            "/data/mermaid.json",
             "-i",
             f"/data/d{index}.mmd",
             "-o",
@@ -118,6 +133,8 @@ def build_pdf(markdown: str) -> None:
         "<style>@page{size:A4 landscape;margin:12mm}body{font-family:'DejaVu Sans',sans-serif}"
         "section{page-break-after:always}h2{font-size:14pt}"
         "svg{max-width:100%;max-height:165mm;height:auto}"
+        # Dark text on the light page and node fills, never white on white.
+        "svg text,svg tspan{fill:#111;color:#111;font-family:'DejaVu Sans',sans-serif}"
         "</style><h1>SRAG Sentinel &mdash; Arquitetura</h1>" + "".join(pages)
     )
     write_pdf(document)
