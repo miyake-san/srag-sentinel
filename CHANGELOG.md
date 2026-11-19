@@ -116,6 +116,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The CI image scan (Trivy, CRITICAL and HIGH) failed on `zlib1g` and on the base image's `pip`/`setuptools`
   (with vendored `urllib3` and `msgpack`). The runtime image now upgrades system packages and removes `pip`; the
   rescan reports 0 findings and the PDF smoke test still passes.
+- The image scan still failed after that: Trivy's secret scanner flagged text inside the installed Anthropic SDK
+  (11 "GCP service account" false positives). The scan now covers vulnerabilities only (0 findings on the rebuilt
+  image with the latest database); repository secrets stay covered by gitleaks.
 - The architecture PDF showed empty boxes on 5 of 6 pages (WeasyPrint ignores Mermaid's HTML labels); labels are
   now SVG text in a pinned font, in dark text.
 - `aquasecurity/trivy-action` bumped from 0.28.0 to 0.35.0 (Dependabot alert, affected versions < 0.35.0).

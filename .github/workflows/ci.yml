@@ -91,6 +91,9 @@ jobs:
         uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: srag-sentinel:ci
+          # Vulnerabilities only: the secret scanner flags documentation text in the installed Anthropic SDK
+          # (a "GCP service account" regex false positive); repository secrets are covered by gitleaks above.
+          scanners: vuln
           severity: CRITICAL,HIGH
           ignore-unfixed: true
           exit-code: "1"
