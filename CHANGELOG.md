@@ -113,6 +113,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
   (ADR 0015).
 
 ### Fixed
+- The CI image scan (Trivy, CRITICAL and HIGH) failed on `zlib1g` and on the base image's `pip`/`setuptools`
+  (with vendored `urllib3` and `msgpack`). The runtime image now upgrades system packages and removes `pip`; the
+  rescan reports 0 findings and the PDF smoke test still passes.
+- The architecture PDF showed empty boxes on 5 of 6 pages (WeasyPrint ignores Mermaid's HTML labels); labels are
+  now SVG text in a pinned font, in dark text.
 - `aquasecurity/trivy-action` bumped from 0.28.0 to 0.35.0 (Dependabot alert, affected versions < 0.35.0).
 - API route tests no longer depend on the developer's `.env` (they build their own settings).
 - The news filter missed 13 of 35 injection payloads (role-play, grade manipulation, requests to leak instructions,

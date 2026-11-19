@@ -24,9 +24,14 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 FROM ${PYTHON_IMAGE} AS runtime
 # WeasyPrint needs Pango; fonts for the PDF (validated in spike T0d).
+# `upgrade` pulls in security fixes published after the base image was built (e.g. zlib1g).
 RUN apt-get update \
+    && apt-get -y --no-install-recommends upgrade \
     && apt-get install -y --no-install-recommends libpango-1.0-0 libpangoft2-1.0-0 fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
+# The app runs from its own venv; the base image's pip and setuptools (with their vendored urllib3 and
+# msgpack) are never used at runtime, only widen the attack surface and trip the image scan.
+RUN python -m pip uninstall -y pip setuptools wheel
 RUN groupadd --system --gid 10001 srag \
     && useradd --system --uid 10001 --gid srag --home-dir /nonexistent --shell /usr/sbin/nologin srag
 # A named volume inherits this ownership on first use, so the non-root user can store reports.
